@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CommandBreak — OS Command Injection Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060b14;
+  --bg2:#0d1520;
+  --bg3:#111c2e;
+  --surface:#162030;
+  --surface2:#1e2d42;
+  --border:#1e3050;
+  --border2:#2a4060;
+  --accent:#00d4ff;
+  --accent2:#0099cc;
+  --green:#00ff88;
+  --green2:#00cc6a;
+  --red:#ff4444;
+  --red2:#cc2222;
+  --yellow:#ffcc00;
+  --orange:#ff8800;
+  --purple:#9966ff;
+  --text:#e8f4ff;
+  --text2:#8aabcc;
+  --text3:#4a6a88;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Space Grotesk',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+#sidebar{width:260px;min-width:260px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.logo{padding:20px 16px;border-bottom:1px solid var(--border)}
+.logo-title{font-size:18px;font-weight:700;color:var(--accent);letter-spacing:-0.5px}
+.logo-sub{font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:2px}
+.nav-sections{flex:1;overflow-y:auto;padding:8px 0}
+.nav-sections::-webkit-scrollbar{width:4px}
+.nav-sections::-webkit-scrollbar-track{background:transparent}
+.nav-sections::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.nav-group-label{font-size:9px;font-weight:600;letter-spacing:2px;color:var(--text3);padding:12px 16px 4px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer;transition:all .15s;border-left:3px solid transparent;font-size:13px;color:var(--text2)}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(0,212,255,.07);border-left-color:var(--accent);color:var(--accent)}
+.nav-item.completed{color:var(--green2)}
+.nav-item.completed::after{content:'✓';margin-left:auto;font-size:11px}
+.nav-num{width:20px;height:20px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:10px;font-family:var(--mono);color:var(--text3);flex-shrink:0}
+.nav-item.active .nav-num{background:var(--accent);color:#000}
+.nav-item.completed .nav-num{background:var(--green2);color:#000}
+.progress-bar{padding:12px 16px;border-top:1px solid var(--border)}
+.prog-label{font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;justify-content:space-between}
+.prog-track{height:3px;background:var(--surface2);border-radius:2px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width .4s}
+
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{padding:12px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;background:var(--bg2)}
+.section-badge{font-size:11px;font-family:var(--mono);background:var(--surface);padding:4px 10px;border-radius:4px;color:var(--accent);border:1px solid var(--border2)}
+.section-title-top{font-size:14px;font-weight:500;color:var(--text)}
+.nav-arrows{margin-left:auto;display:flex;gap:8px}
+.arr-btn{padding:6px 14px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;cursor:pointer;font-size:12px;color:var(--text2);font-family:var(--sans);transition:all .15s}
+.arr-btn:hover{background:var(--surface2);color:var(--text)}
+.arr-btn.primary{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+.arr-btn.primary:hover{background:var(--accent2)}
+
+.content-area{flex:1;display:flex;overflow:hidden}
+.lesson-panel{flex:1;overflow-y:auto;padding:32px 32px}
+.lesson-panel::-webkit-scrollbar{width:5px}
+.lesson-panel::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* SECTION STYLES */
+.section{display:none}
+.section.active{display:block}
+
+.section-header{margin-bottom:28px}
+.sh-eyebrow{font-size:11px;font-family:var(--mono);color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.sh-title{font-size:28px;font-weight:700;color:var(--text);line-height:1.2;margin-bottom:8px}
+.sh-sub{font-size:14px;color:var(--text2);line-height:1.6}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+.card-title{font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+
+.tag{display:inline-block;padding:3px 10px;border-radius:4px;font-size:12px;font-family:var(--mono);margin:3px}
+.tag-green{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.2)}
+.tag-red{background:rgba(255,68,68,.1);color:var(--red);border:1px solid rgba(255,68,68,.2)}
+.tag-yellow{background:rgba(255,204,0,.1);color:var(--yellow);border:1px solid rgba(255,204,0,.2)}
+.tag-blue{background:rgba(0,212,255,.1);color:var(--accent);border:1px solid rgba(0,212,255,.2)}
+.tag-purple{background:rgba(153,102,255,.1);color:var(--purple);border:1px solid rgba(153,102,255,.2)}
+
+/* TERMINAL */
+.terminal{background:#000;border:1px solid var(--border2);border-radius:8px;overflow:hidden;margin:16px 0;font-family:var(--mono)}
+.term-bar{background:#1a1a1a;padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #222}
+.term-dot{width:10px;height:10px;border-radius:50%}
+.term-title{font-size:11px;color:#666;margin-left:4px;flex:1;text-align:center}
+.term-body{padding:16px;min-height:80px}
+.term-line{font-size:13px;line-height:1.7;color:#ccc}
+.term-prompt{color:var(--green)}
+.term-cmd{color:#fff}
+.term-out{color:var(--accent)}
+.term-error{color:var(--red)}
+.term-comment{color:#555}
+.term-input{background:transparent;border:none;outline:none;color:#fff;font-family:var(--mono);font-size:13px;width:calc(100% - 20px)}
+
+/* FLOW DIAGRAM */
+.flow{display:flex;align-items:center;gap:0;margin:20px 0;flex-wrap:wrap}
+.flow-node{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:500;text-align:center;min-width:90px}
+.flow-arrow{color:var(--text3);font-size:18px;padding:0 4px}
+.flow-node.highlight{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.05)}
+.flow-node.danger{border-color:var(--red);color:var(--red);background:rgba(255,68,68,.05)}
+.flow-node.safe{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.05)}
+
+/* CODE COMPARE */
+.code-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.code-block{border-radius:8px;overflow:hidden;font-family:var(--mono)}
+.code-label{padding:8px 14px;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.code-label.safe{background:rgba(0,255,136,.15);color:var(--green)}
+.code-label.unsafe{background:rgba(255,68,68,.15);color:var(--red)}
+.code-body{background:#000;padding:14px;font-size:12px;color:#ccc;line-height:1.8}
+.code-highlight-red{color:var(--red)}
+.code-highlight-green{color:var(--green)}
+.code-highlight-yellow{color:var(--yellow)}
+
+/* INTERACTIVE */
+.playground{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:20px;margin:16px 0}
+.pg-label{font-size:11px;color:var(--text3);margin-bottom:8px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1px}
+.pg-input{background:#000;border:1px solid var(--border2);border-radius:6px;padding:10px 14px;font-family:var(--mono);font-size:13px;color:var(--text);width:100%;outline:none;transition:border-color .2s}
+.pg-input:focus{border-color:var(--accent)}
+.pg-btn{padding:8px 20px;background:var(--accent);border:none;border-radius:6px;color:#000;font-weight:700;font-size:13px;cursor:pointer;font-family:var(--sans);transition:all .15s;margin-top:10px}
+.pg-btn:hover{background:var(--accent2)}
+.pg-btn.red{background:var(--red);color:#fff}
+.pg-btn.red:hover{background:var(--red2)}
+.pg-btn.green{background:var(--green);color:#000}
+.pg-output{background:#000;border:1px solid var(--border2);border-radius:6px;padding:12px 14px;font-family:var(--mono);font-size:12px;min-height:60px;margin-top:10px;color:var(--text);white-space:pre-wrap}
+
+.sep-table{width:100%;border-collapse:collapse;margin:12px 0}
+.sep-table th{background:var(--surface2);padding:8px 14px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border:1px solid var(--border)}
+.sep-table td{padding:10px 14px;font-size:13px;border:1px solid var(--border);font-family:var(--mono)}
+.sep-table tr:hover td{background:var(--surface2)}
+
+/* LAB */
+.lab-header{background:linear-gradient(135deg,var(--surface),var(--surface2));border:1px solid var(--border2);border-radius:12px;padding:20px;margin-bottom:20px}
+.lab-badge{display:inline-block;padding:4px 12px;background:rgba(255,204,0,.15);color:var(--yellow);border:1px solid rgba(255,204,0,.3);border-radius:4px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
+.lab-goal{display:flex;align-items:center;gap:10px;background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.2);border-radius:8px;padding:12px 16px;margin-top:14px;font-size:13px}
+
+.step-block{margin:16px 0}
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#000;font-size:12px;font-weight:700;flex-shrink:0}
+.step-header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.step-title{font-size:14px;font-weight:600;color:var(--text)}
+.step-body{padding-left:40px}
+
+.explain-box{background:rgba(153,102,255,.08);border-left:3px solid var(--purple);border-radius:0 6px 6px 0;padding:12px 16px;margin:10px 0;font-size:13px;color:var(--text2);line-height:1.7}
+.warn-box{background:rgba(255,136,0,.08);border-left:3px solid var(--orange);border-radius:0 6px 6px 0;padding:12px 16px;margin:10px 0;font-size:13px;color:var(--text2);line-height:1.7}
+.success-box{background:rgba(0,255,136,.08);border-left:3px solid var(--green);border-radius:0 6px 6px 0;padding:12px 16px;margin:10px 0;font-size:13px;color:var(--text2);line-height:1.7}
+
+/* DEFENSE */
+.defense-toggle{display:flex;gap:10px;margin:16px 0}
+.dtog-btn{flex:1;padding:12px;border:2px solid var(--border2);border-radius:8px;background:var(--surface);cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text2);transition:all .2s;text-align:center}
+.dtog-btn.on{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.05)}
+.dtog-btn.off{border-color:var(--red);color:var(--red);background:rgba(255,68,68,.05)}
+
+/* ATTACKER MINDSET */
+.question-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin:10px 0;cursor:pointer;transition:all .2s}
+.question-card:hover{border-color:var(--accent);background:rgba(0,212,255,.03)}
+.qc-q{font-size:14px;font-weight:500;color:var(--text);margin-bottom:0}
+.qc-a{font-size:13px;color:var(--text2);margin-top:10px;display:none;padding-top:10px;border-top:1px solid var(--border);line-height:1.6}
+.question-card.open .qc-a{display:block}
+.question-card.open{border-color:var(--yellow)}
+
+/* IMPACT GRID */
+.impact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+.impact-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
+.impact-icon{font-size:24px;margin-bottom:8px}
+.impact-label{font-size:12px;color:var(--text2)}
+
+/* ANIMATIONS */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.animate-in{animation:slideIn .3s ease}
+.blink{animation:blink 1s infinite}
+.typing::after{content:'|';animation:blink 1s infinite}
+
+.delay-badge{background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);border-radius:6px;padding:8px 14px;font-family:var(--mono);font-size:13px;color:var(--red);display:inline-flex;align-items:center;gap:8px}
+
+/* RIGHT PANEL */
+.right-panel{width:280px;min-width:280px;border-left:1px solid var(--border);background:var(--bg2);display:flex;flex-direction:column;overflow:hidden}
+.rp-header{padding:14px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3)}
+.rp-body{flex:1;overflow-y:auto;padding:16px}
+.rp-body::-webkit-scrollbar{width:4px}
+.rp-body::-webkit-scrollbar-thumb{background:var(--border2)}
+.concept-chip{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:var(--text2);line-height:1.6}
+.concept-chip strong{color:var(--accent);display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+
+.why-box{background:rgba(255,204,0,.05);border:1px solid rgba(255,204,0,.2);border-radius:8px;padding:12px;margin-top:8px}
+.why-box .why-title{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--yellow);margin-bottom:6px}
+.why-box p{font-size:12px;color:var(--text2);line-height:1.6}
+
+.ref-item{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2)}
+.ref-item:last-child{border-bottom:none}
+.ref-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0}
+
+/* SEPARATOR PLAYGROUND */
+.sep-pg{background:#000;border:1px solid var(--border2);border-radius:8px;padding:16px;margin:12px 0}
+.sep-pg-input{display:flex;gap:8px;margin-bottom:12px}
+.sep-label{font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:4px}
+.sep-command{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:10px 14px;font-family:var(--mono);font-size:13px;margin:8px 0;white-space:pre}
+.sep-command .cmd-base{color:#ccc}
+.sep-command .cmd-sep{color:var(--red)}
+.sep-command .cmd-inject{color:var(--yellow)}
+
+/* Lab completion */
+.lab-complete{background:rgba(0,255,136,.05);border:2px solid var(--green);border-radius:12px;padding:24px;text-align:center;margin:20px 0}
+.lab-complete h3{color:var(--green);font-size:20px;margin-bottom:8px}
+.lab-complete p{font-size:13px;color:var(--text2)}
+
+/* SCROLLBAR global */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* Timer */
+#timer-display{font-size:32px;font-family:var(--mono);font-weight:700;color:var(--red);margin:10px 0}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="logo">
+    <div class="logo-title">&#x25A0; CommandBreak</div>
+    <div class="logo-sub">control the command → control the system</div>
+  </div>
+  <div class="nav-sections" id="navSections">
+    <div class="nav-group-label">Foundation</div>
+    <div class="nav-item active" data-sec="0" onclick="goTo(0)"><span class="nav-num">1</span>What is an OS</div>
+    <div class="nav-item" data-sec="1" onclick="goTo(1)"><span class="nav-num">2</span>OS Commands</div>
+    <div class="nav-item" data-sec="2" onclick="goTo(2)"><span class="nav-num">3</span>Why Apps Use Commands</div>
+    <div class="nav-item" data-sec="3" onclick="goTo(3)"><span class="nav-num">4</span>How Execution Works</div>
+    <div class="nav-group-label">Input & Vulnerabilities</div>
+    <div class="nav-item" data-sec="4" onclick="goTo(4)"><span class="nav-num">5</span>User Input</div>
+    <div class="nav-item" data-sec="5" onclick="goTo(5)"><span class="nav-num">6</span>Safe vs Unsafe Code</div>
+    <div class="nav-item" data-sec="6" onclick="goTo(6)"><span class="nav-num">7</span>What is Injection?</div>
+    <div class="nav-item" data-sec="7" onclick="goTo(7)"><span class="nav-num">8</span>Why It Works</div>
+    <div class="nav-group-label">Exploitation</div>
+    <div class="nav-item" data-sec="8" onclick="goTo(8)"><span class="nav-num">9</span>Command Separators</div>
+    <div class="nav-item" data-sec="9" onclick="goTo(9)"><span class="nav-num">10</span>Attacker Mindset</div>
+    <div class="nav-item" data-sec="10" onclick="goTo(10)"><span class="nav-num">11</span>Core Simulation</div>
+    <div class="nav-group-label">Labs</div>
+    <div class="nav-item" data-sec="11" onclick="goTo(11)"><span class="nav-num">12</span>Lab 1 — Visible Output</div>
+    <div class="nav-item" data-sec="12" onclick="goTo(12)"><span class="nav-num">13</span>Lab 2 — Time Delay</div>
+    <div class="nav-item" data-sec="13" onclick="goTo(13)"><span class="nav-num">14</span>Lab 3 — Output Redirect</div>
+    <div class="nav-group-label">Defense</div>
+    <div class="nav-item" data-sec="14" onclick="goTo(14)"><span class="nav-num">15</span>Impact & Risk</div>
+    <div class="nav-item" data-sec="15" onclick="goTo(15)"><span class="nav-num">16</span>Defense & Mitigation</div>
+  </div>
+  <div class="progress-bar">
+    <div class="prog-label"><span>Progress</span><span id="progPct">0%</span></div>
+    <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<!-- MAIN AREA -->
+<div id="main">
+  <div class="topbar">
+    <div class="section-badge" id="topBadge">SECTION 01</div>
+    <div class="section-title-top" id="topTitle">What is an Operating System?</div>
+    <div class="nav-arrows">
+      <button class="arr-btn" onclick="goTo(current-1)">← Prev</button>
+      <button class="arr-btn primary" onclick="goTo(current+1)">Next →</button>
+    </div>
+  </div>
+
+  <div class="content-area">
+    <div class="lesson-panel" id="lessonPanel">
+
+      <!-- SECTION 1: WHAT IS AN OS -->
+      <div class="section active animate-in" id="sec0">
+        <div class="section-header">
+          <div class="sh-eyebrow">Foundation · Section 01</div>
+          <div class="sh-title">What is an Operating System?</div>
+          <div class="sh-sub">The OS is the foundation of everything. Commands run through it.</div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">Definition</div>
+            <p style="font-size:14px;line-height:1.7;color:var(--text2)">An <strong style="color:var(--accent)">Operating System</strong> is software that manages hardware and executes programs. Every command you run goes through it.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">What the OS does</div>
+            <div style="font-size:13px;color:var(--text2);line-height:2">
+              <div>⚙️ Manages CPU, memory, disk</div>
+              <div>📁 Controls file system access</div>
+              <div>▶️ Executes programs & commands</div>
+              <div>🔐 Enforces user permissions</div>
+            </div>
+          </div>
+        </div>
+        <div class="three-col">
+          <div class="card" style="text-align:center">
+            <div style="font-size:32px;margin-bottom:8px">🐧</div>
+            <div style="font-weight:600;color:var(--text)">Linux</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px">Most servers run Linux</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-size:32px;margin-bottom:8px">🪟</div>
+            <div style="font-weight:600;color:var(--text)">Windows</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px">Common on enterprise</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-size:32px;margin-bottom:8px">🍎</div>
+            <div style="font-weight:600;color:var(--text)">macOS</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px">Unix-based like Linux</div>
+          </div>
+        </div>
+        <div class="explain-box">💡 <strong>Why this matters:</strong> Web servers run on Linux. OS Command Injection attacks target Linux commands directly on the server.</div>
+      </div>
+
+      <!-- SECTION 2: OS COMMANDS -->
+      <div class="section animate-in" id="sec1">
+        <div class="section-header">
+          <div class="sh-eyebrow">Foundation · Section 02</div>
+          <div class="sh-title">What is an OS Command?</div>
+          <div class="sh-sub">Commands are instructions given directly to the OS. They have high privileges.</div>
+        </div>
+        <div class="two-col">
+          <div>
+            <div class="card">
+              <div class="card-title">Common Linux Commands</div>
+              <div style="font-family:var(--mono);font-size:13px;line-height:2.2;color:var(--text2)">
+                <div><span style="color:var(--yellow)">ls</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--text3)"># list files in directory</span></div>
+                <div><span style="color:var(--yellow)">pwd</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--text3)"># show current directory</span></div>
+                <div><span style="color:var(--yellow)">whoami</span> &nbsp;<span style="color:var(--text3)"># show current user</span></div>
+                <div><span style="color:var(--yellow)">cat</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--text3)"># print file contents</span></div>
+                <div><span style="color:var(--yellow)">ping</span> &nbsp;&nbsp;&nbsp;<span style="color:var(--text3)"># test network connection</span></div>
+                <div><span style="color:var(--yellow)">id</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--text3)"># show user info</span></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="playground">
+              <div class="pg-label">Interactive Terminal — Try a command</div>
+              <div style="display:flex;gap:8px">
+                <select id="cmdSelect" style="background:#000;border:1px solid var(--border2);border-radius:6px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:13px;flex:1;outline:none">
+                  <option value="ls">ls</option>
+                  <option value="pwd">pwd</option>
+                  <option value="whoami">whoami</option>
+                  <option value="cat /etc/hostname">cat /etc/hostname</option>
+                  <option value="id">id</option>
+                  <option value="uname -a">uname -a</option>
+                </select>
+                <button class="pg-btn" onclick="runCmd()">Run</button>
+              </div>
+              <div class="terminal" style="margin-top:12px">
+                <div class="term-bar">
+                  <div class="term-dot" style="background:#ff5f57"></div>
+                  <div class="term-dot" style="background:#febc2e"></div>
+                  <div class="term-dot" style="background:#28c840"></div>
+                  <div class="term-title">terminal</div>
+                </div>
+                <div class="term-body" id="termOut1">
+                  <div class="term-line"><span class="term-prompt">root@server:~$ </span><span class="term-comment"># select a command and click Run</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="warn-box">⚠️ OS commands have <strong style="color:var(--orange)">direct access</strong> to the system — files, network, users, processes. An attacker running OS commands can do anything the server user can do.</div>
+      </div>
+
+      <!-- SECTION 3: WHY APPS USE COMMANDS -->
+      <div class="section animate-in" id="sec2">
+        <div class="section-header">
+          <div class="sh-eyebrow">Foundation · Section 03</div>
+          <div class="sh-title">Why Do Web Apps Use OS Commands?</div>
+          <div class="sh-sub">Sometimes developers take shortcuts — calling OS tools directly.</div>
+        </div>
+        <div class="three-col">
+          <div class="card" style="border-color:rgba(0,212,255,.3)">
+            <div style="font-size:24px;margin-bottom:8px">📡</div>
+            <div style="font-weight:600;color:var(--accent);margin-bottom:4px">Ping Tool</div>
+            <div style="font-size:12px;color:var(--text2);font-family:var(--mono)">ping -c 1 hostname</div>
+          </div>
+          <div class="card" style="border-color:rgba(153,102,255,.3)">
+            <div style="font-size:24px;margin-bottom:8px">🖼️</div>
+            <div style="font-weight:600;color:var(--purple);margin-bottom:4px">Image Conversion</div>
+            <div style="font-size:12px;color:var(--text2);font-family:var(--mono)">convert img.png img.jpg</div>
+          </div>
+          <div class="card" style="border-color:rgba(255,204,0,.3)">
+            <div style="font-size:24px;margin-bottom:8px">🔍</div>
+            <div style="font-weight:600;color:var(--yellow);margin-bottom:4px">System Check</div>
+            <div style="font-size:12px;color:var(--text2);font-family:var(--mono)">df -h / uptime</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Execution Flow</div>
+          <div class="flow" style="justify-content:center">
+            <div class="flow-node highlight">👤 User</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node highlight">🌐 Web App</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node highlight">⚙️ OS Shell</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node highlight">📤 Output</div>
+          </div>
+        </div>
+        <div class="explain-box">💡 The problem: the developer uses user-supplied data to build that command — creating a direct path from <strong style="color:var(--accent)">user input → OS shell</strong>.</div>
+      </div>
+
+      <!-- SECTION 4: HOW EXECUTION WORKS -->
+      <div class="section animate-in" id="sec3">
+        <div class="section-header">
+          <div class="sh-eyebrow">Foundation · Section 04</div>
+          <div class="sh-title">How Execution Works</div>
+          <div class="sh-sub">Trace the path from HTTP request to OS execution.</div>
+        </div>
+        <div id="flowSteps" style="margin:20px 0">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div class="card" id="fs1" style="display:flex;gap:16px;align-items:center;opacity:.4;transition:all .3s">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;color:#000;font-size:14px;flex-shrink:0">1</div>
+              <div>
+                <div style="font-weight:600;color:var(--text);margin-bottom:2px">User Sends HTTP Request</div>
+                <div style="font-family:var(--mono);font-size:12px;color:var(--text3)">GET /ping?ip=8.8.8.8 HTTP/1.1</div>
+              </div>
+            </div>
+            <div style="margin-left:18px;color:var(--text3);font-size:18px">↓</div>
+            <div class="card" id="fs2" style="display:flex;gap:16px;align-items:center;opacity:.4;transition:all .3s">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:14px;flex-shrink:0">2</div>
+              <div>
+                <div style="font-weight:600;color:var(--text);margin-bottom:2px">App Builds Command</div>
+                <div style="font-family:var(--mono);font-size:12px;color:var(--text3)">"ping -c 1 " + user_input</div>
+              </div>
+            </div>
+            <div style="margin-left:18px;color:var(--text3);font-size:18px">↓</div>
+            <div class="card" id="fs3" style="display:flex;gap:16px;align-items:center;opacity:.4;transition:all .3s">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--yellow);display:flex;align-items:center;justify-content:center;font-weight:700;color:#000;font-size:14px;flex-shrink:0">3</div>
+              <div>
+                <div style="font-weight:600;color:var(--text);margin-bottom:2px">OS Shell Executes Command</div>
+                <div style="font-family:var(--mono);font-size:12px;color:var(--text3)">$ ping -c 1 8.8.8.8</div>
+              </div>
+            </div>
+            <div style="margin-left:18px;color:var(--text3);font-size:18px">↓</div>
+            <div class="card" id="fs4" style="display:flex;gap:16px;align-items:center;opacity:.4;transition:all .3s">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-weight:700;color:#000;font-size:14px;flex-shrink:0">4</div>
+              <div>
+                <div style="font-weight:600;color:var(--text);margin-bottom:2px">Output Returned to App</div>
+                <div style="font-family:var(--mono);font-size:12px;color:var(--text3)">PING 8.8.8.8 ... 1 packets transmitted</div>
+              </div>
+            </div>
+          </div>
+          <button class="pg-btn" onclick="animateFlow()" style="margin-top:16px">▶ Animate Execution Flow</button>
+        </div>
+      </div>
+
+      <!-- SECTION 5: USER INPUT -->
+      <div class="section animate-in" id="sec4">
+        <div class="section-header">
+          <div class="sh-eyebrow">Input & Vulnerabilities · Section 05</div>
+          <div class="sh-title">What is User Input?</div>
+          <div class="sh-sub">User input is any data controlled by the attacker. It's the attack surface.</div>
+        </div>
+        <div class="two-col">
+          <div>
+            <div class="card">
+              <div class="card-title">Input Sources</div>
+              <div style="font-size:13px;color:var(--text2);line-height:2.2">
+                <div>🔗 URL Parameters <span class="tag tag-red">HIGH RISK</span></div>
+                <div>📝 Form Fields <span class="tag tag-red">HIGH RISK</span></div>
+                <div>🍪 Cookies <span class="tag tag-yellow">MEDIUM</span></div>
+                <div>📋 HTTP Headers <span class="tag tag-yellow">MEDIUM</span></div>
+                <div>📤 File Uploads <span class="tag tag-yellow">MEDIUM</span></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">Example URL</div>
+              <div style="background:#000;border-radius:6px;padding:14px;font-family:var(--mono);font-size:13px;line-height:2">
+                <span style="color:var(--text3)">http://site.com</span><span style="color:var(--accent)">/ping</span><span style="color:var(--text3)">?</span><span style="color:var(--yellow)">ip</span><span style="color:var(--text3)">=</span><span style="color:var(--red)">8.8.8.8</span>
+                <br>
+                <div style="margin-top:10px;padding-top:10px;border-top:1px solid #222">
+                  <span style="color:var(--text3);font-size:11px">PARAMETER: </span><span style="color:var(--yellow)">ip</span><br>
+                  <span style="color:var(--text3);font-size:11px">VALUE: </span><span style="color:var(--red)">8.8.8.8</span> ← attacker controls this
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="playground">
+          <div class="pg-label">Build a URL — See the input</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <span style="font-family:var(--mono);font-size:13px;color:var(--text3)">http://site.com/ping?ip=</span>
+            <input class="pg-input" id="urlInput" style="width:180px" placeholder="enter IP here" oninput="updateURL()">
+          </div>
+          <div style="margin-top:12px;background:#000;border-radius:6px;padding:12px 14px;font-family:var(--mono);font-size:13px" id="urlOutput">
+            <span style="color:var(--text3)">http://site.com/ping?ip=</span><span style="color:var(--red)" id="urlVal">...</span>
+          </div>
+          <div style="margin-top:10px;background:var(--surface2);border-radius:6px;padding:10px 14px;font-family:var(--mono);font-size:13px;color:var(--text2)">
+            App builds: <span style="color:var(--yellow)">ping -c 1 <span id="cmdVal" style="color:var(--red)">???</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 6: SAFE VS UNSAFE -->
+      <div class="section animate-in" id="sec5">
+        <div class="section-header">
+          <div class="sh-eyebrow">Input & Vulnerabilities · Section 06</div>
+          <div class="sh-title">Safe vs Unsafe Code</div>
+          <div class="sh-sub">The difference between a secure app and a vulnerable one is how input is handled.</div>
+        </div>
+        <div class="code-compare">
+          <div class="code-block">
+            <div class="code-label safe">✓ SAFE — Sanitized Input</div>
+            <div class="code-body">
+<span style="color:#555">// PHP Example</span>
+<span style="color:#ccc">$ip = </span><span class="code-highlight-green">escapeshellarg</span>
+<span style="color:#ccc">  ($_GET['ip']);</span>
+<br>
+<span style="color:#ccc">system("ping -c 1 " . $ip);</span>
+<br><br>
+<span style="color:#555">// Python Safe</span>
+<span style="color:#ccc">subprocess.</span><span class="code-highlight-green">run</span>
+<span style="color:#ccc">(["ping","-c","1", ip])</span>
+            </div>
+          </div>
+          <div class="code-block">
+            <div class="code-label unsafe">✗ UNSAFE — Direct Concatenation</div>
+            <div class="code-body">
+<span style="color:#555">// PHP — VULNERABLE</span>
+<span style="color:#ccc">$ip = </span><span class="code-highlight-red">$_GET['ip']</span><span style="color:#ccc">;</span>
+<span style="color:#555">// NO sanitization!</span>
+<br>
+<span style="color:#ccc">system("ping -c 1 " . </span><span class="code-highlight-red">$ip</span><span style="color:#ccc">);</span>
+<br><br>
+<span style="color:#555">// Python — VULNERABLE</span>
+<span style="color:#ccc">os.</span><span class="code-highlight-red">system</span>
+<span style="color:#ccc">("ping -c 1 " + </span><span class="code-highlight-red">ip</span><span style="color:#ccc">)</span>
+            </div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="success-box">
+            <strong style="color:var(--green)">Safe code does:</strong><br>
+            Wraps input in quotes, escapes special characters, treats input as data — NOT as shell code
+          </div>
+          <div style="background:rgba(255,68,68,.08);border-left:3px solid var(--red);border-radius:0 6px 6px 0;padding:12px 16px;font-size:13px;color:var(--text2);line-height:1.7">
+            <strong style="color:var(--red)">Unsafe code does:</strong><br>
+            Concatenates raw input directly into a shell command — attackers can inject anything
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 7: WHAT IS INJECTION -->
+      <div class="section animate-in" id="sec6">
+        <div class="section-header">
+          <div class="sh-eyebrow">Input & Vulnerabilities · Section 07</div>
+          <div class="sh-title">What is OS Command Injection?</div>
+          <div class="sh-sub">The moment user input escapes its intended role and becomes OS instructions.</div>
+        </div>
+        <div class="card" style="border-color:var(--red);background:rgba(255,68,68,.03);padding:28px;text-align:center">
+          <div style="font-size:14px;color:var(--text3);margin-bottom:12px;font-family:var(--mono);text-transform:uppercase;letter-spacing:2px">Definition</div>
+          <div style="font-size:20px;color:var(--text);font-weight:600;line-height:1.5;max-width:500px;margin:0 auto">"User input <span style="color:var(--red)">modifies OS command execution</span>, allowing arbitrary commands to run on the server."</div>
+        </div>
+        <div class="two-col" style="margin-top:16px">
+          <div class="card">
+            <div class="card-title">Normal Case</div>
+            <div class="flow" style="flex-direction:column;align-items:flex-start;gap:6px">
+              <div class="flow-node safe" style="width:100%">Input: 8.8.8.8</div>
+              <div style="color:var(--text3);padding-left:20px">↓</div>
+              <div class="flow-node safe" style="width:100%">Command: ping -c 1 8.8.8.8</div>
+              <div style="color:var(--text3);padding-left:20px">↓</div>
+              <div class="flow-node safe" style="width:100%">Output: ping result</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Injected Case</div>
+            <div class="flow" style="flex-direction:column;align-items:flex-start;gap:6px">
+              <div class="flow-node danger" style="width:100%">Input: 8.8.8.8<span style="color:var(--red)">; whoami</span></div>
+              <div style="color:var(--text3);padding-left:20px">↓</div>
+              <div class="flow-node danger" style="width:100%">Command: ping -c 1 8.8.8.8<span style="color:var(--red)">; whoami</span></div>
+              <div style="color:var(--text3);padding-left:20px">↓</div>
+              <div class="flow-node danger" style="width:100%">Output: ping + <span style="color:var(--red)">username</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 8: WHY IT WORKS -->
+      <div class="section animate-in" id="sec7">
+        <div class="section-header">
+          <div class="sh-eyebrow">Input & Vulnerabilities · Section 08</div>
+          <div class="sh-title">Why Does This Work?</div>
+          <div class="sh-sub">The OS cannot tell if special characters came from the developer or an attacker.</div>
+        </div>
+        <div class="card" style="background:var(--bg3)">
+          <div class="card-title">The Core Problem</div>
+          <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:var(--text2);line-height:1.7">
+            <div style="display:flex;gap:12px;align-items:flex-start">
+              <span style="color:var(--accent);font-size:20px;flex-shrink:0">01</span>
+              <div>OS commands accept <strong style="color:var(--text)">special characters</strong> like <code style="color:var(--yellow)">; | && $( )</code> as instruction separators</div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start">
+              <span style="color:var(--accent);font-size:20px;flex-shrink:0">02</span>
+              <div>Applications <strong style="color:var(--text)">concatenate user input</strong> directly into shell commands without filtering</div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start">
+              <span style="color:var(--accent);font-size:20px;flex-shrink:0">03</span>
+              <div>The shell <strong style="color:var(--text)">interprets the separator</strong> and executes what follows as a new command</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px">
+          <div class="pg-label" style="color:var(--text3);font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">What the shell sees</div>
+          <div style="background:#000;border-radius:8px;padding:16px;font-family:var(--mono);font-size:15px;line-height:2">
+            <span style="color:#777">ping -c 1 </span><span style="color:#aaa">8.8.8.8</span><span style="color:var(--red);font-size:18px;font-weight:700"> ; </span><span style="color:var(--yellow)">whoami</span>
+            <div style="margin-top:10px;display:flex;gap:30px;font-size:11px">
+              <div style="color:#777">↑ original command</div>
+              <div style="color:var(--red)">↑ separator</div>
+              <div style="color:var(--yellow)">↑ injected command</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 9: COMMAND SEPARATORS -->
+      <div class="section animate-in" id="sec8">
+        <div class="section-header">
+          <div class="sh-eyebrow">Exploitation · Section 09</div>
+          <div class="sh-title">Command Separators</div>
+          <div class="sh-sub">These special characters are the weapons. Master them.</div>
+        </div>
+        <table class="sep-table">
+          <thead>
+            <tr><th>Symbol</th><th>Name</th><th>Behavior</th><th>Example</th></tr>
+          </thead>
+          <tbody>
+            <tr><td style="color:var(--red);font-size:16px">;</td><td style="color:var(--text)">Semicolon</td><td style="color:var(--text2)">Run next command regardless</td><td style="color:var(--yellow)">ping 1.1.1.1; whoami</td></tr>
+            <tr><td style="color:var(--red);font-size:16px">&&</td><td style="color:var(--text)">AND</td><td style="color:var(--text2)">Run next if first succeeds</td><td style="color:var(--yellow)">ping 1.1.1.1 && whoami</td></tr>
+            <tr><td style="color:var(--red);font-size:16px">|</td><td style="color:var(--text)">Pipe</td><td style="color:var(--text2)">Pipe output to next command</td><td style="color:var(--yellow)">ping 1.1.1.1 | whoami</td></tr>
+            <tr><td style="color:var(--red);font-size:16px">||</td><td style="color:var(--text)">OR</td><td style="color:var(--text2)">Run next if first fails</td><td style="color:var(--yellow)">badcmd || whoami</td></tr>
+            <tr><td style="color:var(--red);font-size:14px">$()</td><td style="color:var(--text)">Substitution</td><td style="color:var(--text2)">Execute and substitute output</td><td style="color:var(--yellow)">ping $(whoami)</td></tr>
+          </tbody>
+        </table>
+
+        <div class="playground" style="margin-top:16px">
+          <div class="pg-label">Separator Playground — See injection happen</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+            <div>
+              <div class="sep-label">Base IP</div>
+              <input class="pg-input" id="sepIp" value="8.8.8.8" style="width:140px">
+            </div>
+            <div>
+              <div class="sep-label">Separator</div>
+              <select id="sepSel" style="background:#000;border:1px solid var(--border2);border-radius:6px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none">
+                <option>;</option>
+                <option>&&</option>
+                <option>|</option>
+                <option>||</option>
+                <option>$()</option>
+              </select>
+            </div>
+            <div>
+              <div class="sep-label">Injected Command</div>
+              <input class="pg-input" id="sepCmd" value="whoami" style="width:130px">
+            </div>
+            <div style="display:flex;align-items:flex-end">
+              <button class="pg-btn" onclick="buildSepCmd()">Build</button>
+            </div>
+          </div>
+          <div style="background:#000;border-radius:6px;padding:14px;font-family:var(--mono);font-size:14px" id="sepResult">
+            <span style="color:#666">← configure and click Build</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 10: ATTACKER MINDSET -->
+      <div class="section animate-in" id="sec9">
+        <div class="section-header">
+          <div class="sh-eyebrow">Exploitation · Section 10</div>
+          <div class="sh-title">Attacker Mindset</div>
+          <div class="sh-sub">Three questions every attacker asks before attempting injection.</div>
+        </div>
+        <div class="question-card" onclick="this.classList.toggle('open')">
+          <div class="qc-q">🎯 Question 1: Can I control the input?</div>
+          <div class="qc-a">Look for URL parameters (<code style="color:var(--yellow)">?ip=</code>, <code style="color:var(--yellow)">?host=</code>), form fields, and any user-controlled data sent to the server. If you can change the value — you have a potential vector.</div>
+        </div>
+        <div class="question-card" onclick="this.classList.toggle('open')">
+          <div class="qc-q">🔍 Question 2: Is that input passed to the OS?</div>
+          <div class="qc-a">Look for features like ping tools, DNS lookups, file operations, image processing, or any functionality that <em>might</em> call a system command. Burp Suite intercept helps you see how the app processes input.</div>
+        </div>
+        <div class="question-card" onclick="this.classList.toggle('open')">
+          <div class="qc-q">💉 Question 3: Can I append additional commands?</div>
+          <div class="qc-a">Test with a separator followed by a recognizable command: <code style="color:var(--yellow)">; whoami</code> or <code style="color:var(--yellow)">; sleep 5</code>. If output changes or there's a delay — injection confirmed.</div>
+        </div>
+        <div class="card" style="margin-top:16px;background:rgba(255,204,0,.05);border-color:rgba(255,204,0,.3)">
+          <div class="card-title" style="color:var(--yellow)">Attacker Decision Tree</div>
+          <div class="flow" style="justify-content:center;flex-wrap:wrap">
+            <div class="flow-node" style="background:rgba(255,204,0,.1);border-color:var(--yellow);color:var(--yellow)">Control Input?</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node" style="background:rgba(255,204,0,.1);border-color:var(--yellow);color:var(--yellow)">Reaches OS?</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node" style="background:rgba(255,204,0,.1);border-color:var(--yellow);color:var(--yellow)">Append Cmd?</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node danger">EXPLOIT</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 11: CORE SIMULATION -->
+      <div class="section animate-in" id="sec10">
+        <div class="section-header">
+          <div class="sh-eyebrow">Exploitation · Section 11</div>
+          <div class="sh-title">Core Simulation</div>
+          <div class="sh-sub">Experience injection firsthand. Watch the command transform.</div>
+        </div>
+        <div class="playground">
+          <div class="pg-label">Ping Tool — Enter IP Address</div>
+          <input class="pg-input" id="simInput" placeholder="Enter IP address (try: 8.8.8.8; whoami)" value="8.8.8.8">
+          <div style="margin-top:12px;background:#000;border-radius:6px;padding:12px 14px;font-family:var(--mono);font-size:13px">
+            <span style="color:var(--text3)">System executes: </span>
+            <span id="simBuiltCmd" style="color:var(--accent)">ping -c 1 8.8.8.8</span>
+          </div>
+          <input type="text" id="simInput" oninput="updateSimCmd()" style="display:none">
+          <button class="pg-btn" onclick="runSimulation()" style="margin-right:8px">Execute</button>
+          <button class="pg-btn" style="background:var(--surface2);color:var(--text);margin-top:0" onclick="injectPayload()">Try Injection Payload</button>
+        </div>
+        <div class="terminal">
+          <div class="term-bar">
+            <div class="term-dot" style="background:#ff5f57"></div>
+            <div class="term-dot" style="background:#febc2e"></div>
+            <div class="term-dot" style="background:#28c840"></div>
+            <div class="term-title">simulated-server-shell</div>
+          </div>
+          <div class="term-body" id="simTerminal" style="min-height:160px">
+            <div class="term-line" style="color:#555">Waiting for input...</div>
+          </div>
+        </div>
+        <div id="simExplain" style="display:none" class="explain-box"></div>
+      </div>
+
+      <!-- SECTION 12: LAB 1 -->
+      <div class="section animate-in" id="sec11">
+        <div class="lab-header">
+          <div class="lab-badge">LAB 01</div>
+          <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px">Visible Output Injection</div>
+          <div style="font-size:13px;color:var(--text2)">Stock checker with direct OS command output in response</div>
+          <div class="lab-goal"><span style="color:var(--accent);font-size:18px">🎯</span><span><strong>Goal:</strong> Execute <code style="color:var(--yellow)">whoami</code> and see the server username in the HTTP response</span></div>
+        </div>
+
+        <div class="step-block">
+          <div class="step-header"><div class="step-num">1</div><div class="step-title">Access the stock checker</div></div>
+          <div class="step-body">
+            <div class="terminal">
+              <div class="term-bar"><div class="term-dot" style="background:#ff5f57"></div><div class="term-dot" style="background:#febc2e"></div><div class="term-dot" style="background:#28c840"></div><div class="term-title">HTTP Request</div></div>
+              <div class="term-body">
+                <div class="term-line" style="color:#777">POST /stock-check HTTP/1.1</div>
+                <div class="term-line" style="color:#777">Host: target.com</div>
+                <div class="term-line">&nbsp;</div>
+                <div class="term-line"><span style="color:var(--yellow)">productId</span>=<span style="color:var(--accent)">1</span>&<span style="color:var(--yellow)">storeId</span>=<span style="color:var(--accent)">1</span></div>
+              </div>
+            </div>
+            <div class="explain-box">The app runs: <code style="color:var(--yellow)">check_stock --productId=1 --storeId=1</code> — both parameters go to the OS</div>
+          </div>
+        </div>
+
+        <div class="step-block">
+          <div class="step-header"><div class="step-num">2</div><div class="step-title">Identify injectable parameters</div></div>
+          <div class="step-body">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+              <span class="tag tag-red">productId ← test this</span>
+              <span class="tag tag-red">storeId ← test this</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-block">
+          <div class="step-header"><div class="step-num">3</div><div class="step-title">Inject payload — Live Simulation</div></div>
+          <div class="step-body">
+            <div class="playground">
+              <div class="pg-label">Lab 1 Simulator</div>
+              <div style="display:flex;gap:10px;margin-bottom:10px">
+                <div style="flex:1">
+                  <div class="sep-label">productId</div>
+                  <input class="pg-input" id="lab1prod" value="1">
+                </div>
+                <div style="flex:1">
+                  <div class="sep-label">storeId</div>
+                  <input class="pg-input" id="lab1store" value="1">
+                </div>
+                <div style="display:flex;align-items:flex-end"><button class="pg-btn" onclick="runLab1()">Send</button></div>
+              </div>
+              <div style="font-family:var(--mono);font-size:12px;color:var(--text3);margin-bottom:8px">Try: <span style="color:var(--yellow);cursor:pointer" onclick="document.getElementById('lab1store').value='1; whoami'">1; whoami</span> in storeId</div>
+              <div class="terminal">
+                <div class="term-bar"><div class="term-dot" style="background:#ff5f57"></div><div class="term-dot" style="background:#febc2e"></div><div class="term-dot" style="background:#28c840"></div><div class="term-title">HTTP Response</div></div>
+                <div class="term-body" id="lab1out" style="min-height:100px">
+                  <div class="term-line" style="color:#555">Send a request to see output...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="lab1complete" style="display:none" class="lab-complete">
+          <div style="font-size:32px;margin-bottom:8px">🎉</div>
+          <h3>Lab 1 Complete!</h3>
+          <p>You successfully injected <code style="color:var(--yellow)">whoami</code> and retrieved the server username.<br>The <code style="color:var(--yellow)">;</code> separator told the OS to execute both commands.</p>
+        </div>
+      </div>
+
+      <!-- SECTION 13: LAB 2 -->
+      <div class="section animate-in" id="sec12">
+        <div class="lab-header">
+          <div class="lab-badge" style="background:rgba(153,102,255,.15);color:var(--purple);border-color:rgba(153,102,255,.3)">LAB 02</div>
+          <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px">Blind Injection — Time Delay</div>
+          <div style="font-size:13px;color:var(--text2)">No output returned. Confirm execution via response delay.</div>
+          <div class="lab-goal"><span style="color:var(--accent);font-size:18px">🎯</span><span><strong>Goal:</strong> Cause a 10-second delay proving <code style="color:var(--yellow)">sleep 10</code> executed on the server</span></div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">Blind vs Visible</div>
+          <div class="two-col">
+            <div>
+              <div class="tag tag-green" style="display:block;margin-bottom:8px;text-align:center">Lab 1 — Visible</div>
+              <div style="font-size:12px;color:var(--text2);line-height:1.8">✓ Output shown in response<br>✓ Easy to confirm<br>✓ Read data directly</div>
+            </div>
+            <div>
+              <div class="tag tag-purple" style="display:block;margin-bottom:8px;text-align:center">Lab 2 — Blind</div>
+              <div style="font-size:12px;color:var(--text2);line-height:1.8">✗ No output in response<br>✓ Confirm via delay<br>✓ Still executes!</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-block">
+          <div class="step-header"><div class="step-num">1</div><div class="step-title">Submit feedback form — intercept</div></div>
+          <div class="step-body">
+            <div class="terminal">
+              <div class="term-bar"><div class="term-dot" style="background:#ff5f57"></div><div class="term-dot" style="background:#febc2e"></div><div class="term-dot" style="background:#28c840"></div><div class="term-title">POST /feedback</div></div>
+              <div class="term-body">
+                <div class="term-line" style="color:#777">name=<span style="color:var(--accent)">John</span></div>
+                <div class="term-line" style="color:#777">email=<span style="color:var(--accent)">john@test.com</span></div>
+                <div class="term-line" style="color:#777">subject=<span style="color:var(--accent)">Great product</span></div>
+                <div class="term-line" style="color:#777">message=<span style="color:var(--accent)">Thanks!</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-block">
+          <div class="step-header"><div class="step-num">2</div><div class="step-title">Inject time delay — Live Simulation</div></div>
+          <div class="step-body">
+            <div class="playground">
+              <div class="pg-label">Lab 2 Simulator — Test each parameter</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+                <div>
+                  <div class="sep-label">email parameter</div>
+                  <input class="pg-input" id="lab2email" value="john@test.com">
+                </div>
+                <div style="display:flex;align-items:flex-end">
+                  <button class="pg-btn" onclick="runLab2()">Send Request</button>
+                </div>
+              </div>
+              <div style="font-family:var(--mono);font-size:12px;color:var(--text3);margin-bottom:10px">
+                Try: <span style="color:var(--yellow);cursor:pointer" onclick="document.getElementById('lab2email').value='test@test.com; sleep 10'">test@test.com; sleep 10</span>
+              </div>
+              <div id="lab2timer" style="display:none;text-align:center;padding:20px">
+                <div style="font-size:12px;color:var(--text3);font-family:var(--mono);margin-bottom:8px">RESPONSE TIME</div>
+                <div id="timer-display">0.0s</div>
+                <div style="font-size:12px;color:var(--text3);margin-top:8px" id="timerStatus">Waiting for response...</div>
+              </div>
+              <div id="lab2result" class="pg-output" style="min-height:60px;display:none"></div>
+            </div>
+            <div class="explain-box">💡 <strong>Why delay proves injection:</strong> The app passes your input to the shell. <code style="color:var(--yellow)">sleep 10</code> makes the OS wait 10 seconds before returning control — delaying the HTTP response. No output, but execution confirmed.</div>
+          </div>
+        </div>
+
+        <div id="lab2complete" style="display:none" class="lab-complete">
+          <div style="font-size:32px;margin-bottom:8px">⏱️</div>
+          <h3>Lab 2 Complete!</h3>
+          <p>10-second delay confirmed blind command execution.<br>No output was returned — but the OS still ran your command.</p>
+        </div>
+      </div>
+
+      <!-- SECTION 14: LAB 3 -->
+      <div class="section animate-in" id="sec13">
+        <div class="lab-header">
+          <div class="lab-badge" style="background:rgba(255,136,0,.15);color:var(--orange);border-color:rgba(255,136,0,.3)">LAB 03</div>
+          <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px">Blind Injection — Output Redirection</div>
+          <div style="font-size:13px;color:var(--text2)">Write command output to a file. Retrieve it via HTTP.</div>
+          <div class="lab-goal"><span style="color:var(--accent);font-size:18px">🎯</span><span><strong>Goal:</strong> Redirect <code style="color:var(--yellow)">whoami</code> output to a file → read it via the image endpoint</span></div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">The Strategy</div>
+          <div class="flow" style="justify-content:center;flex-wrap:wrap">
+            <div class="flow-node" style="font-size:12px">Inject<br>whoami > file</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node" style="font-size:12px">Writes to<br>/var/www/images/</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node" style="font-size:12px">Request<br>/image?filename=</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node safe" style="font-size:12px">Read<br>whoami output</div>
+          </div>
+        </div>
+
+        <div class="step-block">
+          <div class="step-header"><div class="step-num">1</div><div class="step-title">Inject output redirection payload</div></div>
+          <div class="step-body">
+            <div class="explain-box"><strong>Payload:</strong> <code style="color:var(--yellow)">; whoami > /var/www/images/output.txt</code><br><br>The <code style="color:var(--yellow)">></code> operator redirects command output to a file instead of the terminal.</div>
+          </div>
+        </div>
+
+        <div class="step-block">
+          <div class="step-header"><div class="step-num">2</div><div class="step-title">Lab 3 — Live Simulation</div></div>
+          <div class="step-body">
+            <div class="playground">
+              <div class="pg-label">Phase 1: Inject the payload</div>
+              <div style="margin-bottom:10px">
+                <div class="sep-label">email parameter</div>
+                <input class="pg-input" id="lab3email" value="test@test.com">
+              </div>
+              <div style="font-family:var(--mono);font-size:12px;color:var(--text3);margin-bottom:10px">
+                Try: <span style="color:var(--yellow);cursor:pointer" onclick="document.getElementById('lab3email').value='test@test.com; whoami > /var/www/images/output.txt'">test@test.com; whoami > /var/www/images/output.txt</span>
+              </div>
+              <button class="pg-btn" onclick="runLab3inject()">Inject</button>
+              <div id="lab3injectResult" class="pg-output" style="margin-top:10px;display:none"></div>
+
+              <div id="lab3phase2" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border2)">
+                <div class="pg-label">Phase 2: Retrieve the output file</div>
+                <div style="margin-bottom:10px">
+                  <div class="sep-label">filename parameter</div>
+                  <input class="pg-input" id="lab3file" value="product1.jpg">
+                </div>
+                <div style="font-family:var(--mono);font-size:12px;color:var(--text3);margin-bottom:10px">
+                  Change to: <span style="color:var(--yellow);cursor:pointer" onclick="document.getElementById('lab3file').value='output.txt'">output.txt</span>
+                </div>
+                <button class="pg-btn green" onclick="runLab3retrieve()">Fetch File</button>
+                <div id="lab3retrieveResult" class="pg-output" style="margin-top:10px;display:none"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="lab3complete" style="display:none" class="lab-complete">
+          <div style="font-size:32px;margin-bottom:8px">📁</div>
+          <h3>Lab 3 Complete!</h3>
+          <p>You redirected command output to a file and retrieved it.<br>This technique bypasses blind injection — giving you full data exfiltration.</p>
+        </div>
+      </div>
+
+      <!-- SECTION 15: IMPACT -->
+      <div class="section animate-in" id="sec14">
+        <div class="section-header">
+          <div class="sh-eyebrow">Defense · Section 15</div>
+          <div class="sh-title">Impact & Risk</div>
+          <div class="sh-sub">OS Command Injection is one of the most critical vulnerabilities that exists.</div>
+        </div>
+        <div class="card" style="background:rgba(255,68,68,.04);border-color:rgba(255,68,68,.4);padding:16px 20px;margin-bottom:16px;display:flex;gap:16px;align-items:center">
+          <span style="font-size:36px">⚠️</span>
+          <div>
+            <div style="font-weight:700;font-size:15px;color:var(--red);margin-bottom:4px">OWASP Top 10 — Critical Severity</div>
+            <div style="font-size:13px;color:var(--text2)">Almost always leads to full server compromise. Often rated CVSS 10.0.</div>
+          </div>
+        </div>
+        <div class="impact-grid">
+          <div class="impact-card"><div class="impact-icon">📂</div><div class="impact-label">Read any file on the server</div></div>
+          <div class="impact-card"><div class="impact-icon">⌨️</div><div class="impact-label">Execute arbitrary commands</div></div>
+          <div class="impact-card"><div class="impact-icon">🦠</div><div class="impact-label">Upload malware / webshells</div></div>
+          <div class="impact-card"><div class="impact-icon">🔙</div><div class="impact-label">Create reverse shells</div></div>
+          <div class="impact-card"><div class="impact-icon">🗄️</div><div class="impact-label">Dump databases</div></div>
+          <div class="impact-card"><div class="impact-icon">🔑</div><div class="impact-label">Full server takeover</div></div>
+        </div>
+        <div class="card" style="margin-top:4px">
+          <div class="card-title">Languages with Vulnerable Functions</div>
+          <table class="sep-table">
+            <thead><tr><th>Language</th><th>Vulnerable Function</th><th>Safe Alternative</th></tr></thead>
+            <tbody>
+              <tr><td style="color:var(--accent)">PHP</td><td style="color:var(--red);font-family:var(--mono)">system(), exec()</td><td style="color:var(--green);font-family:var(--mono)">escapeshellarg()</td></tr>
+              <tr><td style="color:var(--accent)">Python</td><td style="color:var(--red);font-family:var(--mono)">os.system()</td><td style="color:var(--green);font-family:var(--mono)">subprocess.run(list)</td></tr>
+              <tr><td style="color:var(--accent)">Java</td><td style="color:var(--red);font-family:var(--mono)">Runtime.exec(string)</td><td style="color:var(--green);font-family:var(--mono)">Runtime.exec(array)</td></tr>
+              <tr><td style="color:var(--accent)">Node.js</td><td style="color:var(--red);font-family:var(--mono)">child_process.exec()</td><td style="color:var(--green);font-family:var(--mono)">child_process.execFile()</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECTION 16: DEFENSE -->
+      <div class="section animate-in" id="sec15">
+        <div class="section-header">
+          <div class="sh-eyebrow">Defense · Section 16</div>
+          <div class="sh-title">Defense & Mitigation</div>
+          <div class="sh-sub">Prevention is simple — but developers must know the rules.</div>
+        </div>
+
+        <div class="defense-toggle">
+          <button class="dtog-btn off" id="defOff" onclick="setDefense(false)">⚠️ Protection OFF</button>
+          <button class="dtog-btn" id="defOn" onclick="setDefense(true)" style="border-color:var(--border2);color:var(--text2)">🛡️ Protection ON</button>
+        </div>
+
+        <div class="playground">
+          <div class="pg-label">Attack Simulation</div>
+          <input class="pg-input" id="defInput" value="8.8.8.8; whoami" readonly>
+          <button class="pg-btn red" onclick="runDefenseTest()" style="margin-top:10px">Launch Attack</button>
+          <div class="terminal" style="margin-top:12px">
+            <div class="term-bar"><div class="term-dot" style="background:#ff5f57"></div><div class="term-dot" style="background:#febc2e"></div><div class="term-dot" style="background:#28c840"></div><div class="term-title">server response</div></div>
+            <div class="term-body" id="defResult" style="min-height:80px">
+              <div class="term-line" style="color:#555">Toggle protection and click Launch Attack...</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px">
+          <div class="card-title" style="margin-bottom:12px;color:var(--text3);font-size:11px;letter-spacing:1.5px;text-transform:uppercase">Mitigation Techniques</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="card" style="display:flex;gap:14px;align-items:flex-start">
+              <span style="color:var(--green);font-size:20px;flex-shrink:0">01</span>
+              <div>
+                <div style="font-weight:600;color:var(--green);margin-bottom:4px">Avoid Shell Execution</div>
+                <div style="font-size:13px;color:var(--text2)">Use language APIs that don't invoke a shell. Pass arguments as arrays, not strings.</div>
+                <div style="font-family:var(--mono);font-size:12px;margin-top:6px;color:var(--text3)">subprocess.run(<span style="color:var(--green)">["ping", "-c", "1", ip]</span>)</div>
+              </div>
+            </div>
+            <div class="card" style="display:flex;gap:14px;align-items:flex-start">
+              <span style="color:var(--green);font-size:20px;flex-shrink:0">02</span>
+              <div>
+                <div style="font-weight:600;color:var(--green);margin-bottom:4px">Validate & Whitelist Input</div>
+                <div style="font-size:13px;color:var(--text2)">Accept only known-good patterns. For an IP field, only allow digits and dots.</div>
+                <div style="font-family:var(--mono);font-size:12px;margin-top:6px;color:var(--text3)">if not re.match(<span style="color:var(--yellow)">r'^\d+\.\d+\.\d+\.\d+$'</span>, ip): reject()</div>
+              </div>
+            </div>
+            <div class="card" style="display:flex;gap:14px;align-items:flex-start">
+              <span style="color:var(--green);font-size:20px;flex-shrink:0">03</span>
+              <div>
+                <div style="font-weight:600;color:var(--green);margin-bottom:4px">Reject Special Characters</div>
+                <div style="font-size:13px;color:var(--text2)">Block or escape characters: <code style="color:var(--red)">; | & $ ( ) ` > < !</code></div>
+              </div>
+            </div>
+            <div class="card" style="display:flex;gap:14px;align-items:flex-start">
+              <span style="color:var(--green);font-size:20px;flex-shrink:0">04</span>
+              <div>
+                <div style="font-weight:600;color:var(--green);margin-bottom:4px">Least Privilege</div>
+                <div style="font-size:13px;color:var(--text2)">Run web apps as non-root with minimal OS permissions. Even if injected, damage is limited.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lab-complete" style="margin-top:24px;background:rgba(0,212,255,.03);border-color:var(--accent)">
+          <div style="font-size:32px;margin-bottom:8px">🎓</div>
+          <h3 style="color:var(--accent)">Course Complete!</h3>
+          <p>You've mastered OS Command Injection — from foundations to exploitation to defense.<br>
+          <span style="color:var(--text3);font-size:12px;margin-top:6px;display:block">Always use this knowledge ethically and responsibly.</span></p>
+        </div>
+      </div>
+
+    </div><!-- /lesson-panel -->
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="rp-header">Key Concepts</div>
+      <div class="rp-body" id="rightPanel">
+        <!-- Dynamic content injected per section -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let current = 0;
+const total = 16;
+const completed = new Set();
+
+const titles = [
+  "What is an Operating System?","OS Commands","Why Apps Use Commands",
+  "How Execution Works","User Input","Safe vs Unsafe Code",
+  "What is OS Command Injection?","Why It Works","Command Separators",
+  "Attacker Mindset","Core Simulation","Lab 1 — Visible Output",
+  "Lab 2 — Time Delay","Lab 3 — Output Redirect","Impact & Risk","Defense & Mitigation"
+];
+
+const rightPanelContent = [
+  // 0 - OS
+  `<div class="concept-chip"><strong>Key Term</strong>The OS is the gateway. All commands — including injected ones — pass through it.</div>
+   <div class="why-box"><div class="why-title">Why it matters</div><p>Web servers run on Linux. An injected command runs with the web server's OS privileges.</p></div>`,
+  // 1 - Commands
+  `<div class="concept-chip"><strong>High Privilege</strong>OS commands interact directly with the file system, network, and processes.</div>
+   <div class="concept-chip"><strong>No UI Barrier</strong>Commands bypass the web layer entirely — they run at OS level.</div>`,
+  // 2 - Why apps
+  `<div class="concept-chip"><strong>Shortcut Problem</strong>Developers use OS commands because it's faster than using safe APIs.</div>
+   <div class="why-box"><div class="why-title">Attack Surface</div><p>Every place where app calls the OS with user data = potential injection point.</p></div>`,
+  // 3 - Execution
+  `<div class="concept-chip"><strong>The Chain</strong>Request → App → Shell → OS → Output. Injection hijacks step 2.</div>
+   <div class="concept-chip"><strong>No Validation</strong>The shell executes whatever it receives — no questions asked.</div>`,
+  // 4 - User Input
+  `<div class="concept-chip"><strong>Attack Surface</strong>Any user-controlled value that reaches an OS command is a potential injection point.</div>
+   <div class="why-box"><div class="why-title">Rule</div><p>Never trust user input. Always validate before it reaches any command.</p></div>`,
+  // 5 - Safe vs Unsafe
+  `<div class="concept-chip"><strong>Root Cause</strong>String concatenation of user input into shell commands without escaping.</div>
+   <div class="concept-chip"><strong>Fix</strong>Use parameterized APIs or escape all special characters before injection.</div>`,
+  // 6 - Injection def
+  `<div class="concept-chip"><strong>Definition</strong>Unsanitized user input modifies the structure of an OS command.</div>
+   <div class="why-box"><div class="why-title">Impact</div><p>Attacker goes from controlling a value to controlling the entire command.</p></div>`,
+  // 7 - Why it works
+  `<div class="concept-chip"><strong>Shell Blindness</strong>The OS shell cannot distinguish developer-intended characters from attacker-injected ones.</div>`,
+  // 8 - Separators
+  `<div class="concept-chip"><strong>;</strong>Always runs next command</div>
+   <div class="concept-chip"><strong>&&</strong>Runs if previous succeeded</div>
+   <div class="concept-chip"><strong>|</strong>Pipes output to next command</div>
+   <div class="concept-chip"><strong>$()</strong>Command substitution</div>`,
+  // 9 - Mindset
+  `<div class="concept-chip"><strong>Three Questions</strong>Control input → Reaches OS → Can append commands = VULNERABLE</div>
+   <div class="why-box"><div class="why-title">Recon Tip</div><p>Features like ping, DNS lookup, file conversion are prime suspects.</p></div>`,
+  // 10 - Core Sim
+  `<div class="concept-chip"><strong>Watch the Build</strong>Observe how your input becomes part of the OS command string.</div>
+   <div class="concept-chip"><strong>Separator is Key</strong>The ; character splits the command — everything after it executes separately.</div>`,
+  // 11 - Lab 1
+  `<div class="concept-chip"><strong>Lab Type</strong>Visible output — response contains direct OS command output.</div>
+   <div class="concept-chip"><strong>Payload</strong><code style="color:var(--yellow)">1; whoami</code> in storeId parameter</div>
+   <div class="why-box"><div class="why-title">Why it works</div><p>App outputs raw shell result. Semicolon adds whoami as a second command.</p></div>`,
+  // 12 - Lab 2
+  `<div class="concept-chip"><strong>Blind Injection</strong>No output shown. Execution confirmed via side effects.</div>
+   <div class="concept-chip"><strong>Time Delay</strong>sleep 10 pauses OS for 10s → delays HTTP response</div>
+   <div class="why-box"><div class="why-title">Key Insight</div><p>Lack of output ≠ lack of vulnerability. Always test with sleep.</p></div>`,
+  // 13 - Lab 3
+  `<div class="concept-chip"><strong>Output Redirect</strong>Write command results to a file using > operator</div>
+   <div class="concept-chip"><strong>Retrieve</strong>Access file via an existing endpoint that serves files</div>
+   <div class="why-box"><div class="why-title">Escalation</div><p>This turns blind injection into full data exfiltration without direct output.</p></div>`,
+  // 14 - Impact
+  `<div class="concept-chip"><strong>CVSS</strong>Typically 9.0–10.0 Critical</div>
+   <div class="concept-chip"><strong>OWASP</strong>Consistently in Top 10</div>
+   <div class="concept-chip"><strong>End Goal</strong>Reverse shell → full server control</div>`,
+  // 15 - Defense
+  `<div class="concept-chip"><strong>#1 Rule</strong>Never pass raw user input to a shell command</div>
+   <div class="concept-chip"><strong>Whitelist</strong>Only allow known-safe input patterns</div>
+   <div class="concept-chip"><strong>Least Priv</strong>Run app as non-root — limit blast radius</div>
+   <div class="why-box"><div class="why-title">Remember</div><p>Defense is simple: validate input + avoid shell execution. Both are required.</p></div>`,
+];
+
+function goTo(n) {
+  if (n < 0 || n >= total) return;
+  completed.add(current);
+  document.getElementById('sec' + current).classList.remove('active');
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  current = n;
+  const sec = document.getElementById('sec' + current);
+  sec.classList.add('active');
+  sec.classList.remove('animate-in');
+  void sec.offsetWidth;
+  sec.classList.add('animate-in');
+  document.querySelectorAll('.nav-item')[current].classList.add('active');
+  completed.forEach(i => {
+    document.querySelectorAll('.nav-item')[i].classList.add('completed');
+  });
+  document.getElementById('topBadge').textContent = 'SECTION ' + String(current+1).padStart(2,'0');
+  document.getElementById('topTitle').textContent = titles[current];
+  document.getElementById('rightPanel').innerHTML = rightPanelContent[current];
+  const pct = Math.round((completed.size / total) * 100);
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progPct').textContent = pct + '%';
+  document.getElementById('lessonPanel').scrollTop = 0;
+}
+
+// Section 2: Terminal simulator
+const cmdOutputs = {
+  'ls': 'app.py  config.json  static/  templates/  uploads/',
+  'pwd': '/var/www/html',
+  'whoami': 'www-data',
+  'cat /etc/hostname': 'prod-server-01',
+  'id': 'uid=33(www-data) gid=33(www-data) groups=33(www-data)',
+  'uname -a': 'Linux prod-server-01 5.15.0 #1 SMP x86_64 GNU/Linux'
+};
+function runCmd() {
+  const cmd = document.getElementById('cmdSelect').value;
+  const out = cmdOutputs[cmd] || 'command not found';
+  const term = document.getElementById('termOut1');
+  term.innerHTML = '';
+  addTermLine(term, `<span class="term-prompt">root@server:~$ </span><span class="term-cmd">${cmd}</span>`);
+  setTimeout(() => {
+    addTermLine(term, `<span class="term-out">${out}</span>`);
+    addTermLine(term, `<span class="term-prompt">root@server:~$ </span><span class="blink">_</span>`);
+  }, 300);
+}
+
+function addTermLine(container, html) {
+  const d = document.createElement('div');
+  d.className = 'term-line';
+  d.innerHTML = html;
+  container.appendChild(d);
+}
+
+// Section 4: Flow animation
+function animateFlow() {
+  ['fs1','fs2','fs3','fs4'].forEach((id,i) => {
+    setTimeout(() => {
+      document.getElementById(id).style.opacity = '1';
+      document.getElementById(id).style.transform = 'translateX(4px)';
+      setTimeout(() => { document.getElementById(id).style.transform = 'translateX(0)'; }, 200);
+    }, i * 500);
+  });
+}
+
+// Section 5: URL builder
+function updateURL() {
+  const v = document.getElementById('urlInput').value || '...';
+  document.getElementById('urlVal').textContent = v;
+  document.getElementById('cmdVal').textContent = v;
+}
+
+// Section 9: Separator playground
+function buildSepCmd() {
+  const ip = document.getElementById('sepIp').value || '8.8.8.8';
+  const sep = document.getElementById('sepSel').value;
+  const cmd = document.getElementById('sepCmd').value || 'whoami';
+  const result = document.getElementById('sepResult');
+  let display;
+  if (sep === '$()') {
+    display = `<span class="cmd-base">ping -c 1 </span><span class="cmd-sep">$(</span><span class="cmd-inject">${cmd}</span><span class="cmd-sep">)</span>`;
+  } else {
+    display = `<span class="cmd-base">ping -c 1 ${ip} </span><span class="cmd-sep">${sep} </span><span class="cmd-inject">${cmd}</span>`;
+  }
+  result.innerHTML = display;
+}
+
+// Section 11: Core Simulation
+const simInputEl = document.getElementById('simInput');
+let simInputVal = '8.8.8.8';
+
+// Fix: re-grab the actual input
+document.addEventListener('DOMContentLoaded', () => {});
+
+function updateSimCmd() {
+  const realInput = document.querySelectorAll('#sec10 .pg-input')[0];
+  if (realInput) {
+    document.getElementById('simBuiltCmd').textContent = 'ping -c 1 ' + (realInput.value || '');
+  }
+}
+
+function injectPayload() {
+  const inp = document.querySelectorAll('#sec10 .pg-input')[0];
+  if (inp) { inp.value = '8.8.8.8; whoami'; updateSimCmd(); }
+}
+
+function getSimInput() {
+  const inp = document.querySelectorAll('#sec10 .pg-input')[0];
+  return inp ? inp.value : '8.8.8.8';
+}
+
+// Override — actually hook the visible input
+setTimeout(() => {
+  const inp = document.querySelectorAll('#sec10 .pg-input')[0];
+  if (inp) {
+    inp.value = '8.8.8.8';
+    inp.oninput = updateSimCmd;
+    document.getElementById('simBuiltCmd').textContent = 'ping -c 1 8.8.8.8';
+  }
+}, 100);
+
+function runSimulation() {
+  const input = getSimInput();
+  const term = document.getElementById('simTerminal');
+  const explain = document.getElementById('simExplain');
+  term.innerHTML = '';
+  const fullCmd = 'ping -c 1 ' + input;
+  addTermLine(term, `<span class="term-prompt">server$ </span><span class="term-cmd">${fullCmd}</span>`);
+  const isInjected = /[;&|$`]/.test(input);
+  setTimeout(() => {
+    if (!isInjected) {
+      addTermLine(term, `<span class="term-out">PING 8.8.8.8 (8.8.8.8) 56 bytes of data.</span>`);
+      addTermLine(term, `<span class="term-out">64 bytes from 8.8.8.8: icmp_seq=1 ttl=118 time=12.4 ms</span>`);
+      addTermLine(term, `<span class="term-out">1 packets transmitted, 1 received, 0% packet loss</span>`);
+      explain.style.display = 'none';
+    } else {
+      const parts = input.split(/[;&|]+/);
+      addTermLine(term, `<span class="term-out">PING ${parts[0].trim()}: Network unreachable (or simulated)</span>`);
+      setTimeout(() => {
+        addTermLine(term, `<span style="color:var(--red)">--- Injected command executed ---</span>`);
+        const injCmd = parts[1] ? parts[1].trim() : '';
+        if (injCmd === 'whoami') addTermLine(term, `<span style="color:var(--yellow)">www-data</span>`);
+        else if (injCmd === 'id') addTermLine(term, `<span style="color:var(--yellow)">uid=33(www-data) gid=33(www-data)</span>`);
+        else if (injCmd.startsWith('cat')) addTermLine(term, `<span style="color:var(--yellow)">root:x:0:0:root:/root:/bin/bash\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin</span>`);
+        else if (injCmd === 'ls') addTermLine(term, `<span style="color:var(--yellow)">app.py config.json static/ templates/ uploads/</span>`);
+        else addTermLine(term, `<span style="color:var(--yellow)">[command executed: ${injCmd}]</span>`);
+        explain.style.display = 'block';
+        explain.innerHTML = `🔴 <strong>Injection Detected!</strong> The <code style="color:var(--red)">${input.match(/[;&|$`]/)[0]}</code> separator caused the OS to execute <code style="color:var(--yellow)">${injCmd}</code> as a separate command. The server user is <code style="color:var(--yellow)">www-data</code>.`;
+      }, 400);
+    }
+  }, 600);
+}
+
+// LAB 1
+function runLab1() {
+  const prod = document.getElementById('lab1prod').value;
+  const store = document.getElementById('lab1store').value;
+  const out = document.getElementById('lab1out');
+  out.innerHTML = '';
+  const cmd = `check_stock --productId=${prod} --storeId=${store}`;
+  addTermLine(out, `<span style="color:#555">Executing: ${cmd}</span>`);
+  setTimeout(() => {
+    const isInjected = /[;&|]/.test(store) || /[;&|]/.test(prod);
+    if (isInjected) {
+      const parts = (store + prod).split(/[;&|]+/);
+      const inj = parts.find(p => p.trim().match(/whoami|id|ls|cat/i));
+      addTermLine(out, `<span class="term-out">Stock count: 182</span>`);
+      if (inj) {
+        const injTrimmed = inj.trim();
+        let result = '';
+        if (injTrimmed === 'whoami') result = 'peter-gK3z0o';
+        else if (injTrimmed === 'id') result = 'uid=1001(peter-gK3z0o) gid=1001(peter-gK3z0o)';
+        else result = '[command output]';
+        addTermLine(out, `<span style="color:var(--yellow)">${result}</span>`);
+        setTimeout(() => { document.getElementById('lab1complete').style.display='block'; }, 400);
+      }
+    } else {
+      addTermLine(out, `<span class="term-out">Stock count: 182</span>`);
+    }
+  }, 500);
+}
+
+// LAB 2
+let lab2timer = null;
+function runLab2() {
+  const email = document.getElementById('lab2email').value;
+  const timerDiv = document.getElementById('lab2timer');
+  const result = document.getElementById('lab2result');
+  result.style.display = 'none';
+  const isBlind = /sleep\s+(\d+)/.test(email);
+  const sleepMatch = email.match(/sleep\s+(\d+)/);
+  const sleepSec = sleepMatch ? parseInt(sleepMatch[1]) : 0;
+  if (isBlind && sleepSec > 0) {
+    timerDiv.style.display = 'block';
+    document.getElementById('timerStatus').textContent = 'Waiting for response...';
+    let elapsed = 0;
+    const interval = setInterval(() => {
+      elapsed += 0.1;
+      document.getElementById('timer-display').textContent = elapsed.toFixed(1) + 's';
+      if (elapsed >= sleepSec) {
+        clearInterval(interval);
+        document.getElementById('timerStatus').textContent = '✓ Response received after ' + sleepSec + 's delay!';
+        document.getElementById('timer-display').style.color = 'var(--yellow)';
+        setTimeout(() => {
+          result.style.display = 'block';
+          result.style.color = 'var(--green)';
+          result.textContent = 'HTTP/1.1 200 OK\nContent-Type: text/html\n\n[Feedback submitted successfully]\n\n// No command output — but server delayed ' + sleepSec + ' seconds\n// Command execution CONFIRMED';
+          document.getElementById('lab2complete').style.display = 'block';
+        }, 300);
+      }
+    }, 100);
+  } else {
+    timerDiv.style.display = 'none';
+    result.style.display = 'block';
+    result.style.color = 'var(--text2)';
+    result.textContent = 'HTTP/1.1 200 OK\n\n[Feedback submitted successfully]\n\nResponse time: 0.12s (immediate — no injection)';
+  }
+}
+
+// LAB 3
+let lab3injected = false;
+function runLab3inject() {
+  const email = document.getElementById('lab3email').value;
+  const result = document.getElementById('lab3injectResult');
+  result.style.display = 'block';
+  const hasRedirect = email.includes('>') && email.includes('/var/www/images/');
+  if (hasRedirect) {
+    result.style.color = 'var(--green)';
+    result.textContent = 'HTTP/1.1 200 OK\n\n[Feedback submitted]\n\n// No error — command executed silently\n// whoami output written to /var/www/images/output.txt';
+    lab3injected = true;
+    setTimeout(() => { document.getElementById('lab3phase2').style.display = 'block'; }, 400);
+  } else {
+    result.style.color = 'var(--text2)';
+    result.textContent = 'HTTP/1.1 200 OK\n\n[Feedback submitted successfully]\n\nNo injection detected in this request.';
+  }
+}
+
+function runLab3retrieve() {
+  const file = document.getElementById('lab3file').value;
+  const result = document.getElementById('lab3retrieveResult');
+  result.style.display = 'block';
+  if (file === 'output.txt' && lab3injected) {
+    result.style.color = 'var(--yellow)';
+    result.textContent = 'HTTP/1.1 200 OK\nContent-Type: text/plain\n\nwww-data\n\n// Contents of /var/www/images/output.txt\n// whoami output successfully retrieved!';
+    setTimeout(() => { document.getElementById('lab3complete').style.display = 'block'; }, 400);
+  } else if (file === 'output.txt' && !lab3injected) {
+    result.style.color = 'var(--red)';
+    result.textContent = 'HTTP/1.1 404 Not Found\n\nFile not found.\nRun the injection step first!';
+  } else {
+    result.style.color = 'var(--text2)';
+    result.textContent = 'HTTP/1.1 200 OK\nContent-Type: image/jpeg\n\n[Binary image data...]\n\nThis is a product image file.';
+  }
+}
+
+// DEFENSE
+let defenseOn = false;
+function setDefense(on) {
+  defenseOn = on;
+  document.getElementById('defOn').className = 'dtog-btn ' + (on ? 'on' : '');
+  document.getElementById('defOff').className = 'dtog-btn ' + (!on ? 'off' : '');
+  if (!on) {
+    document.getElementById('defOn').style.borderColor = 'var(--border2)';
+    document.getElementById('defOn').style.color = 'var(--text2)';
+  }
+}
+
+function runDefenseTest() {
+  const input = document.getElementById('defInput').value;
+  const result = document.getElementById('defResult');
+  result.innerHTML = '';
+  if (defenseOn) {
+    addTermLine(result, `<span style="color:var(--green)">🛡️ Security middleware intercepted request</span>`);
+    addTermLine(result, `<span style="color:var(--text3)">Input validation: FAILED — special characters detected</span>`);
+    addTermLine(result, `<span style="color:var(--red)">Characters rejected: ; whoami</span>`);
+    addTermLine(result, `<span style="color:var(--green)">Request blocked. No OS command executed.</span>`);
+  } else {
+    addTermLine(result, `<span style="color:#555">Executing: ping -c 1 ${input}</span>`);
+    setTimeout(() => {
+      addTermLine(result, `<span style="color:var(--accent)">PING 8.8.8.8... 1 packet transmitted</span>`);
+      setTimeout(() => {
+        addTermLine(result, `<span style="color:var(--red)">--- INJECTED COMMAND OUTPUT ---</span>`);
+        addTermLine(result, `<span style="color:var(--yellow)">www-data</span>`);
+        addTermLine(result, `<span style="color:var(--red)">⚠️ Server compromised! whoami executed.</span>`);
+      }, 400);
+    }, 400);
+  }
+}
+
+// INIT
+goTo(0);
+setTimeout(updateSimCmd, 200);
+</script>
+</body>
+</html>
